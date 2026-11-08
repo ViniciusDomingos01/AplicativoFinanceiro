@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../api/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id          String               @id @default(uuid()) @db.Uuid
+  email       String               @unique @db.VarChar(254)
+  passwordHash String              @db.VarChar(255)
+  createdAt   DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime             @updatedAt @db.Timestamptz(3)
+  profile     Profile?
+  sessions    Session[]
+  categories  Category[]
+  sources     FinancialSource[]
+  transactions Transaction[]
+  baseline    FinancialBaseline?
+  goals       Goal[]
+  budgets     Budget[]
+  lessonProgress LessonProgress[]
+  quizAttempts QuizAttempt[]
+  preferences UserPreferences?
+
+  @@map("users")
+}
+
+model Profile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  name               String   @db.VarChar(120)
+  phone              String?  @db.VarChar(32)
+  monthlyIncomeCents BigInt?
+  financialGoal      String?  @db.VarChar(240)
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique @db.Char(64)
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model FinancialBaseline {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @db.Uuid
+  initialBalanceCents BigInt
+  trackingStartDate   DateTime @db.Date
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(3)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("financial_baselines")
+}
+
+model Category {
+  id           String          @id @default(uuid()) @db.Uuid
+  userId       String          @db.Uuid
+  name         String          @db.VarChar(80)
+  type         TransactionType
+  color        String?         @db.VarChar(7)
+  icon         String?         @db.VarChar(16)
+  createdAt    DateTime        @default(now()) @db.Timestamptz(3)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@unique([userId, type, name])
+  @@unique([userId, id])
+  @@index([userId, type])
+  @@map("categories")
+}
+
+model FinancialSource {
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @db.Uuid
+  name         String        @db.VarChar(80)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name])
+  @@unique([userId, id])
+  @@map("financial_sources")
+}
+
+model Transaction {
+  id            String          @id @default(uuid()) @db.Uuid
+  userId        String          @db.Uuid
+  categoryId    String          @db.Uuid
+  sourceId      String?         @db.Uuid
+  type          TransactionType
+  amountCents   BigInt
+  description   String          @db.VarChar(160)
+  date          DateTime        @db.Date
+  note          String?         @db.VarChar(1000)
+  createdAt     DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @db.Timestamptz(3)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category        @relation(fields: [userId, categoryId], references: [userId, id], onDelete: Restrict)
+  source        FinancialSource? @relation(fields: [userId, sourceId], references: [userId, id], onDelete: Restrict)
+
+  @@index([userId, date])
+  @@index([userId, type, date])
+  @@index([categoryId, date])
+  @@map("transactions")
+}
+
+model Goal {
+  id           String             @id @default(uuid()) @db.Uuid
+  userId       String             @db.Uuid
+  title        String             @db.VarChar(120)
+  targetCents  BigInt
+  deadline     DateTime?          @db.Date
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @db.Timestamptz(3)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
+
+  @@index([userId, createdAt])
+  @@map("goals")
+}
+
+model GoalContribution {
+  id          String   @id @default(uuid()) @db.Uuid
+  goalId      String   @db.Uuid
+  amountCents BigInt
+  date        DateTime @db.Date
+  note        String?  @db.VarChar(240)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  goal        Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, date])
+  @@map("goal_contributions")
+}
+
+model Budget {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  categoryId  String   @db.Uuid
+  year        Int      @db.SmallInt
+  month       Int      @db.SmallInt
+  limitCents  BigInt
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category @relation(fields: [userId, categoryId], references: [userId, id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, year, month])
+  @@index([userId, year, month])
+  @@map("budgets")
+}
+
+model UserPreferences {
+  id                   String   @id @default(uuid()) @db.Uuid
+  userId               String   @unique @db.Uuid
+  notificationsEnabled Boolean  @default(true)
+  createdAt            DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(3)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model LessonProgress {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  lessonId    String    @db.VarChar(80)
+  completedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model QuizAttempt {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  lessonId      String   @db.VarChar(80)
+  score         Int
+  total         Int
+  passed        Boolean
+  xpAwarded     Int      @default(0)
+  attemptedAt   DateTime @default(now()) @db.Timestamptz(3)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lessonId, attemptedAt])
+  @@map("quiz_attempts")
+}

@@ -52,3 +52,24 @@ Os dados continuam demonstrativos e o estado editável existe somente em memóri
 O Figma MCP não está conectado nesta sessão. O relatório do Copilot também registra que o arquivo Figma Make não pôde ser aberto por esse MCP; por isso, esta etapa preserva os estilos e componentes exportados, mas não confirma a fidelidade ao canvas original. Os artigos exportados têm título e metadados, sem o texto integral.
 
 Para demonstrar o progresso local, um quiz concluído concede 10 XP por resposta correta na primeira tentativa daquela aula; a aprovação continua exigindo 70% de acertos, conforme a tela de quiz existente. A conclusão da aula e o progresso do curso só avançam ao passar. Esses valores são regras de demonstração desta interface e não representam uma política de produto/backend.
+
+## Backend em implementação
+
+A API é desenvolvida em Fastify + TypeScript. O banco é PostgreSQL, acessado por Prisma 7. O esquema está em `prisma/schema.prisma` e a migração inicial versionada em `prisma/migrations/`. A configuração de exemplo fica em `.env.example`; copie-a para `.env` e nunca coloque credenciais reais no Git.
+
+Para desenvolvimento local com Docker instalado:
+
+```sh
+corepack pnpm install
+cp .env.example .env
+docker compose up -d postgres
+corepack pnpm db:generate
+corepack pnpm db:migrate
+corepack pnpm api:dev
+```
+
+Em outro terminal, execute `corepack pnpm dev`. O Vite encaminha `/api` para a API em `localhost:3001`. O endpoint `/api/health/live` verifica o processo; `/api/health/ready` verifica também a conexão com o PostgreSQL.
+
+O modelo registra um patrimônio inicial com data de início, transações manuais em centavos, categorias, origens organizacionais opcionais, metas e contribuições declaradas, orçamentos e progresso educacional. Contribuições de metas não são transações. O saldo estimado considera somente receitas e despesas na janela iniciada na data-base. O catálogo de cursos permanece conteúdo estático do protótipo; nenhum dado de demonstração é importado para contas reais.
+
+Comandos de qualidade da API: `corepack pnpm check`, `corepack pnpm api:test` e `corepack pnpm build`. O Compose cria um banco apenas para desenvolvimento, com credenciais não destinadas a produção.
