@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "api:dev": "tsx watch api/src/server.ts",
+    "api:build": "tsc -p api/tsconfig.json --noEmit false --outDir api/dist",
     "api:check": "tsc -p api/tsconfig.json",
     "api:test": "tsx --test api/test/app.test.ts api/test/money.test.ts",
     "db:generate": "prisma generate",

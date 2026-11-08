@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useState } from "react"
 import {
   Navigate,
   Route,
@@ -30,12 +30,22 @@ import type {
   Course,
   Lesson as LessonType,
   UserProfile,
-  SpendingCategory,
   Goal,
 } from "./data/mockData"
 import type { FinanceWorkspace, SetupSection } from "./screens/FinanceSetup"
+import {
+  api,
+  ApiError,
+  fromCents,
+  toCents,
+  type ApiCategory,
+  type ApiProfile,
+  type ApiSummary,
+  type ApiTransaction,
+} from "./api/client"
 
 const Onboarding = lazy(() => import("./screens/Onboarding"))
+const Auth = lazy(() => import("./screens/Auth"))
 const Home = lazy(() => import("./screens/Home"))
 const Finances = lazy(() => import("./screens/Finances"))
 const TransactionDetail = lazy(() => import("./screens/TransactionDetail"))
@@ -85,14 +95,33 @@ const SETUP_SECTIONS: SetupSection[] = [
 
 interface NavigationState {
   entity?: unknown
+  mode?: "login" | "register"
 }
 
-function recalculateCategoryPercentages(categories: SpendingCategory[]) {
-  const total = categories.reduce((sum, category) => sum + category.amount, 0)
-  return categories.map((category) => ({
-    ...category,
-    percentage: total > 0 ? Math.round((category.amount / total) * 100) : 0,
-  }))
+type AuthStatus = "loading" | "anonymous" | "authenticated" | "unavailable"
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+}
+
+function uiDate(value: string | null | undefined) {
+  if (!value) return "Sem prazo"
+  const date = value.slice(0, 10)
+  return new Date(`${date}T12:00:00`).toLocaleDateString("pt-BR", {
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function goalDate(value: string, date?: string) {
+  if (date) return date.slice(0, 10)
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? `${value}-01` : null
 }
 
 export default function App() {
@@ -100,13 +129,18 @@ export default function App() {
   const routerNavigate = useNavigate()
   const screen = screenForPath(location.pathname) ?? "onboarding"
   const [profile, setProfile] = useState<UserProfile>(initialUser)
+  const [authStatus, setAuthStatus] = useState<AuthStatus>("loading")
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [personalDataReturn, setPersonalDataReturn] = useState<Screen>("home")
   const [financeWorkspace, setFinanceWorkspace] = useState<FinanceWorkspace>({
     balance: financialSummary.totalBalance,
+    initialBalance: financialSummary.totalBalance,
+    trackingStartDate: null,
     categories: spendingCategories,
     goals,
     transactions,
   })
+  const [financeSummary, setFinanceSummary] = useState<ApiSummary | null>(null)
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
@@ -123,15 +157,165 @@ export default function App() {
   )
   const [rewardedLessonIds, setRewardedLessonIds] = useState<string[]>([])
 
+  const loadAuthenticatedData = useCallback(async () => {
+    const userData = await api.get<ApiProfile>("/profile")
+    const [categories, transactionResponse, goalResponse, learning] =
+      await Promise.all([
+        api.get<ApiCategory[]>("/finance/categories"),
+        userData.baseline
+          ? api.get<ApiTransaction[]>("/finance/transactions?limit=500")
+          : Promise.resolve([] as ApiTransaction[]),
+        api.get<Array<{
+          id: string
+          title: string
+          targetCents: string
+          currentReservedCents: string
+          deadline: string | null
+        }>>("/goals"),
+        api.get<{
+          lessons: Array<{ courseId: string; lessonId: string }>
+          attempts: Array<{ lessonId: string; xpAwarded: number }>
+          xp: number
+        }>("/learning/progress"),
+      ])
+    const today = new Date().toISOString().slice(0, 10)
+    const monthStart = `${today.slice(0, 7)}-01`
+    const summary = userData.baseline
+      ? await api.get<ApiSummary>(
+          `/finance/summary?from=${monthStart}&through=${today}`,
+        )
+      : null
+    const spendingById = new Map(
+      summary?.spendingCategories.map((item) => [item.id, item]) ?? [],
+    )
+    setFinanceSummary(summary)
+
+    setProfile({
+      ...initialUser,
+      name: userData.profile?.name ?? "",
+      email: userData.email,
+      phone: userData.profile?.phone ?? "",
+      monthlyIncome: String(fromCents(userData.profile?.monthlyIncomeCents)),
+      financialGoal: userData.profile?.financialGoal ?? "",
+      avatar: initials(userData.profile?.name ?? "FE"),
+      xp: learning.xp,
+      memberSince: uiDate(userData.profile?.createdAt),
+    })
+    setNotificationsEnabled(userData.preferences?.notificationsEnabled ?? true)
+    setFinanceWorkspace({
+      balance: fromCents(
+        summary?.estimatedBalanceCents ??
+          userData.baseline?.initialBalanceCents,
+      ),
+      initialBalance: userData.baseline
+        ? fromCents(userData.baseline.initialBalanceCents)
+        : null,
+      trackingStartDate:
+        userData.baseline?.trackingStartDate.slice(0, 10) ?? null,
+      categories: categories.map((category) => {
+        const spending = spendingById.get(category.id)
+        return {
+          id: category.id,
+          name: category.name,
+          amount: fromCents(spending?.amountCents),
+          percentage: spending?.percentage ?? 0,
+          color: category.color ?? "#64748b",
+          icon: category.icon ?? "•",
+          type: category.type.toLowerCase() as "income" | "expense",
+        }
+      }),
+      goals: goalResponse.map((goal) => ({
+        id: goal.id,
+        title: goal.title,
+        icon: "🎯",
+        color: "#16a34a",
+        current: fromCents(goal.currentReservedCents),
+        target: fromCents(goal.targetCents),
+        deadline: uiDate(goal.deadline),
+        deadlineDate: goal.deadline?.slice(0, 10) ?? undefined,
+      })),
+      transactions: transactionResponse.map((transaction) => ({
+        id: transaction.id,
+        title: transaction.description,
+        amount: fromCents(transaction.amountCents),
+        type: transaction.type.toLowerCase() as "income" | "expense",
+        category: transaction.category.name,
+        categoryId: transaction.categoryId,
+        categoryColor: transaction.category.color ?? "#64748b",
+        date: transaction.date.slice(0, 10),
+        paymentMethod: transaction.source?.name ?? "Não informado",
+        note: transaction.note ?? undefined,
+        icon: transaction.category.icon ?? "•",
+      })),
+    })
+
+    const completedIds = learning.lessons.map((lesson) => lesson.lessonId)
+    setCompletedLessonIds(completedIds)
+    setRewardedLessonIds(
+      learning.attempts
+        .filter((attempt) => attempt.xpAwarded > 0)
+        .map((attempt) => attempt.lessonId),
+    )
+    const progress: Record<string, number> = {}
+    for (const course of courses) {
+      const totalLessons = courseModules.flatMap(
+        (module) => module.lessons,
+      ).length
+      const completedCount = learning.lessons.filter(
+        (lesson) => lesson.courseId === course.id,
+      ).length
+      if (completedCount > 0)
+        progress[course.id] = Math.min(
+          100,
+          Math.round(
+            (completedCount / Math.max(course.lessons, totalLessons)) * 100,
+          ),
+        )
+    }
+    setCourseProgress(progress)
+    return Boolean(userData.baseline)
+  }, [])
+
+  const fetchFinanceSummary = useCallback(
+    async (from: string, through: string) => {
+      return api.get<ApiSummary>(
+        `/finance/summary?from=${encodeURIComponent(from)}&through=${encodeURIComponent(through)}`,
+      )
+    },
+    [],
+  )
+
+  const changeFinancePeriod = fetchFinanceSummary
+
+  useEffect(() => {
+    let mounted = true
+    api
+      .get("/auth/session")
+      .then(() => loadAuthenticatedData())
+      .then(() => {
+        if (mounted) setAuthStatus("authenticated")
+      })
+      .catch((error: unknown) => {
+        if (!mounted) return
+        if (error instanceof ApiError && error.status === 401)
+          setAuthStatus("anonymous")
+        else setAuthStatus("unavailable")
+      })
+    return () => {
+      mounted = false
+    }
+  }, [loadAuthenticatedData])
+
   const routeId = routeIdFromPath(location.pathname)
-  const routeEntity = (location.state as NavigationState | null)?.entity
+  const navigationState = location.state as NavigationState | null
+  const routeEntity = navigationState?.entity
   const transactionFromRoute = routeEntity as Transaction | undefined
   const courseFromRoute = routeEntity as Course | undefined
   const lessonFromRoute = routeEntity as LessonType | undefined
 
   const currentTransaction =
-    (transactionFromRoute?.id === routeId ? transactionFromRoute : undefined) ??
     (selectedTransaction?.id === routeId ? selectedTransaction : undefined) ??
+    (transactionFromRoute?.id === routeId ? transactionFromRoute : undefined) ??
     financeWorkspace.transactions.find(
       (transaction) => transaction.id === routeId,
     ) ??
@@ -187,132 +371,211 @@ export default function App() {
     )
   }
 
-  function updateTransaction(previous: Transaction, next: Transaction) {
-    setFinanceWorkspace((current) => {
-      const signedAmount = (transaction: Transaction) =>
-        transaction.type === "income" ? transaction.amount : -transaction.amount
-      const changedCategories = current.categories.map((category) => {
-        let amount = category.amount
-        if (
-          previous.type === "expense" &&
-          category.name === previous.category
-        ) {
-          amount = Math.max(0, amount - previous.amount)
-        }
-        if (next.type === "expense" && category.name === next.category) {
-          amount += next.amount
-        }
-        return { ...category, amount }
-      })
-
-      return {
-        ...current,
-        balance: current.balance + signedAmount(next) - signedAmount(previous),
-        categories: recalculateCategoryPercentages(changedCategories),
-        transactions: current.transactions.map((item) =>
-          item.id === previous.id ? next : item,
-        ),
-      }
+  async function updateTransaction(previous: Transaction, next: Transaction) {
+    const category = financeWorkspace.categories.find(
+      (item) => item.name === next.category && item.type === next.type,
+    )
+    if (!category?.id)
+      throw new Error("Cadastre uma categoria para este tipo de movimentação.")
+    await api.patch(`/finance/transactions/${previous.id}`, {
+      type: next.type.toUpperCase(),
+      amountCents: toCents(next.amount),
+      description: next.title,
+      date: next.date,
+      paymentMethod: next.paymentMethod,
+      categoryId: category.id,
+      note: next.note ?? null,
     })
+    await loadAuthenticatedData()
     setSelectedTransaction(next)
   }
 
-  function deleteTransaction(transaction: Transaction) {
-    setFinanceWorkspace((current) => {
-      const changedCategories = current.categories.map((category) => ({
-        ...category,
-        amount:
-          transaction.type === "expense" &&
-          category.name === transaction.category
-            ? Math.max(0, category.amount - transaction.amount)
-            : category.amount,
-      }))
-      return {
-        ...current,
-        balance:
-          current.balance -
-          (transaction.type === "income"
-            ? transaction.amount
-            : -transaction.amount),
-        categories: recalculateCategoryPercentages(changedCategories),
-        transactions: current.transactions.filter(
-          (item) => item.id !== transaction.id,
-        ),
-      }
-    })
+  async function deleteTransaction(transaction: Transaction) {
+    await api.delete(`/finance/transactions/${transaction.id}`)
+    await loadAuthenticatedData()
     setSelectedTransaction(null)
     routerNavigate(ROUTES.finances)
   }
 
-  function updateGoals(nextGoals: Goal[]) {
-    setFinanceWorkspace((current) => ({ ...current, goals: nextGoals }))
+  async function updateGoals(nextGoals: Goal[]) {
+    const currentById = new Map(
+      financeWorkspace.goals.map((goal) => [goal.id, goal]),
+    )
+    const nextById = new Map(nextGoals.map((goal) => [goal.id, goal]))
+    for (const previous of financeWorkspace.goals) {
+      if (!nextById.has(previous.id)) await api.delete(`/goals/${previous.id}`)
+    }
+    for (const goal of nextGoals) {
+      const previous = currentById.get(goal.id)
+      const targetCents = toCents(goal.target)
+      if (!previous) {
+        const created = await api.post<{ id: string }>("/goals", {
+          title: goal.title,
+          targetCents,
+          deadline: goalDate(goal.deadline, goal.deadlineDate),
+        })
+        if (goal.current > 0) {
+          await api.post(`/goals/${created.id}/contributions`, {
+            amountCents: toCents(goal.current),
+            date: new Date().toISOString().slice(0, 10),
+          })
+        }
+        continue
+      }
+      if (
+        previous.title !== goal.title ||
+        previous.target !== goal.target ||
+        previous.deadlineDate !== goal.deadlineDate
+      ) {
+        await api.patch(`/goals/${goal.id}`, {
+          title: goal.title,
+          targetCents,
+          deadline: goalDate(goal.deadline, goal.deadlineDate),
+        })
+      }
+      const contribution = Math.max(0, goal.current - previous.current)
+      if (contribution > 0) {
+        await api.post(`/goals/${goal.id}/contributions`, {
+          amountCents: toCents(contribution),
+          date: new Date().toISOString().slice(0, 10),
+        })
+      }
+    }
+    await loadAuthenticatedData()
   }
 
-  function finishQuiz(result: { score: number; total: number; passed: boolean }) {
+  async function updateFinanceWorkspace(next: FinanceWorkspace) {
+    const previous = financeWorkspace
+    try {
+      if (
+        next.initialBalance !== previous.initialBalance ||
+        next.trackingStartDate !== previous.trackingStartDate
+      ) {
+        if (next.initialBalance == null || !next.trackingStartDate) {
+          throw new Error("Informe o patrimônio inicial e a data de início.")
+        }
+        await api.put("/finance/baseline", {
+          initialBalanceCents: toCents(next.initialBalance),
+          trackingStartDate: next.trackingStartDate,
+        })
+      }
+
+      const knownCategoryIds = new Set(
+        previous.categories.map((category) => category.id).filter(Boolean),
+      )
+      for (const category of next.categories) {
+        if (category.id && knownCategoryIds.has(category.id)) continue
+        await api.post("/finance/categories", {
+          name: category.name,
+          type: category.type?.toUpperCase() ?? "EXPENSE",
+          color: category.color,
+          icon: category.icon,
+        })
+      }
+      const currentCategories = await api.get<ApiCategory[]>(
+        "/finance/categories",
+      )
+      const oldTransactions = new Map(
+        previous.transactions.map((transaction) => [
+          transaction.id,
+          transaction,
+        ]),
+      )
+      const nextTransactionIds = new Set(
+        next.transactions.map((transaction) => transaction.id),
+      )
+      for (const transaction of previous.transactions) {
+        if (!nextTransactionIds.has(transaction.id)) {
+          await api.delete(`/finance/transactions/${transaction.id}`)
+        }
+      }
+      for (const transaction of next.transactions) {
+        const category = currentCategories.find(
+          (item) =>
+            item.name === transaction.category &&
+            item.type.toLowerCase() === transaction.type,
+        )
+        if (!category)
+          throw new Error(
+            "Cadastre uma categoria compatível antes de registrar a movimentação.",
+          )
+        const body = {
+          type: transaction.type.toUpperCase(),
+          amountCents: toCents(transaction.amount),
+          description: transaction.title,
+          date: transaction.date,
+          paymentMethod: transaction.paymentMethod,
+          categoryId: category.id,
+          note: transaction.note ?? null,
+        }
+        if (oldTransactions.has(transaction.id)) {
+          await api.patch(`/finance/transactions/${transaction.id}`, body)
+        } else {
+          await api.post("/finance/transactions", body)
+        }
+      }
+      await updateGoals(next.goals)
+      await loadAuthenticatedData()
+    } catch (error) {
+      await loadAuthenticatedData().catch(() => undefined)
+      throw error
+    }
+  }
+
+  async function finishQuiz(result: {
+    score: number
+    total: number
+    passed: boolean
+  }) {
     const lessonId = currentLesson?.id
     if (!lessonId) return
-
-    if (!rewardedLessonIds.includes(lessonId)) {
-      setRewardedLessonIds((current) => [...current, lessonId])
-      setProfile((current) => ({
-        ...current,
-        xp: current.xp + result.score * 10,
-      }))
-    }
-
-    if (!result.passed || completedLessonIds.includes(lessonId)) return
-    setCompletedLessonIds((current) => [...current, lessonId])
-    const course = currentCourse ?? courses[0]
-    if (!course) return
-    const availableLessons = courseModules.flatMap((module) => module.lessons)
-    const baselineCompletedIds = availableLessons
-      .filter((lesson) => lesson.completed)
-      .map((lesson) => lesson.id)
-    const completionSlots = Math.max(
-      1,
-      availableLessons.length - baselineCompletedIds.length,
-    )
-    const completedDuringSession =
-      completedLessonIds.filter((id) => !baselineCompletedIds.includes(id))
-        .length + 1
-    const baselineProgress = course.progress ?? 0
-    const nextProgress = Math.min(
-      100,
-      baselineProgress +
-        ((100 - baselineProgress) * completedDuringSession) / completionSlots,
-    )
-    setCourseProgress((current) => ({
-      ...current,
-      [course.id]: nextProgress,
-    }))
+    await api.post("/learning/quiz-attempts", {
+      courseId: (currentCourse ?? courses[0])?.id ?? "1",
+      lessonId,
+      score: result.score,
+      total: result.total,
+    })
+    await loadAuthenticatedData()
   }
 
-  function handleLogout() {
-    setProfile(initialUser)
-    setFinanceWorkspace({
-      balance: financialSummary.totalBalance,
-      categories: spendingCategories,
-      goals,
-      transactions,
-    })
-    setPersonalDataReturn("home")
-    setSelectedTransaction(null)
-    setSelectedCourse(null)
-    setSelectedLesson(null)
-    setCompletedLessonIds(
-      courseModules.flatMap((module) =>
-        module.lessons
-          .filter((lesson) => lesson.completed)
-          .map((lesson) => lesson.id),
-      ),
-    )
-    setCourseProgress({})
-    setRewardedLessonIds([])
-    routerNavigate(ROUTES.onboarding)
+  async function handleLogout() {
+    try {
+      await api.post("/auth/logout")
+    } finally {
+      setAuthStatus("anonymous")
+      setProfile(initialUser)
+      setFinanceWorkspace({
+        balance: 0,
+        initialBalance: null,
+        trackingStartDate: null,
+        categories: [],
+        goals: [],
+        transactions: [],
+      })
+      setFinanceSummary(null)
+      setSelectedTransaction(null)
+      setSelectedCourse(null)
+      setSelectedLesson(null)
+      setPersonalDataReturn("home")
+      setCourseProgress({})
+      setCompletedLessonIds([])
+      setRewardedLessonIds([])
+      setNotificationsEnabled(true)
+      routerNavigate(ROUTES.onboarding)
+    }
   }
 
   function handleTabChange(tab: NavTab) {
     routerNavigate(ROUTES[TAB_SCREENS[tab]])
+  }
+
+  async function handleAuthenticated() {
+    const hasBaseline = await loadAuthenticatedData()
+    setAuthStatus("authenticated")
+    routerNavigate(
+      hasBaseline ? ROUTES.home : `${ROUTES.financeSetup}/balance`,
+      { replace: true },
+    )
   }
 
   function renderScreen(target: Screen) {
@@ -320,10 +583,23 @@ export default function App() {
       case "onboarding":
         return (
           <Onboarding
-            onComplete={() => navigate("home")}
-            onRegister={() => navigate("personalData")}
+            onComplete={() => navigate("auth", { mode: "login" })}
+            onRegister={() => navigate("auth", { mode: "register" })}
           />
         )
+      case "auth": {
+        const mode =
+          (routeEntity as { mode?: "login" | "register" } | undefined)?.mode ??
+          navigationState?.mode ??
+          "login"
+        return (
+          <Auth
+            initialMode={mode}
+            onAuthenticated={handleAuthenticated}
+            onBack={() => navigate("onboarding")}
+          />
+        )
+      }
       case "home":
         return (
           <Home
@@ -331,10 +607,18 @@ export default function App() {
             user={profile}
             workspace={financeWorkspace}
             courseProgress={courseProgress}
+            summary={financeSummary}
           />
         )
       case "finances":
-        return <Finances navigate={navigate} workspace={financeWorkspace} />
+        return (
+          <Finances
+            navigate={navigate}
+            workspace={financeWorkspace}
+            initialSummary={financeSummary}
+            onPeriodChange={changeFinancePeriod}
+          />
+        )
       case "transaction":
         return currentTransaction ? (
           <TransactionDetail
@@ -401,6 +685,11 @@ export default function App() {
             goals={financeWorkspace.goals}
             onLogout={handleLogout}
             courseProgress={courseProgress}
+            notificationsEnabled={notificationsEnabled}
+            onNotificationsChange={async (enabled) => {
+              await api.patch("/profile", { notificationsEnabled: enabled })
+              setNotificationsEnabled(enabled)
+            }}
           />
         )
       case "personalData":
@@ -409,8 +698,16 @@ export default function App() {
             user={profile}
             isFirstAccess={personalDataReturn === "home"}
             onBack={() => navigate(personalDataReturn)}
-            onSave={(updatedProfile) => {
-              setProfile(updatedProfile)
+            onSave={async (updatedProfile) => {
+              await api.patch("/profile", {
+                name: updatedProfile.name,
+                phone: updatedProfile.phone || null,
+                monthlyIncomeCents: updatedProfile.monthlyIncome
+                  ? toCents(Number(updatedProfile.monthlyIncome))
+                  : null,
+                financialGoal: updatedProfile.financialGoal || null,
+              })
+              await loadAuthenticatedData()
               navigate(personalDataReturn)
             }}
           />
@@ -423,7 +720,7 @@ export default function App() {
           <FinanceSetup
             workspace={financeWorkspace}
             initialSection={financeSetupSection}
-            onChange={setFinanceWorkspace}
+            onChange={updateFinanceWorkspace}
             onBack={() => navigate("finances")}
           />
         )
@@ -431,6 +728,26 @@ export default function App() {
   }
 
   const activeTab = SCREEN_TO_TAB[screen] ?? "home"
+  const secured = (target: Screen) => {
+    if (authStatus === "loading") {
+      return (
+        <div
+          className="flex-1 bg-slate-50"
+          role="status"
+          aria-label="Verificando sessão"
+        />
+      )
+    }
+    if (authStatus !== "authenticated")
+      return <Navigate to={ROUTES.auth} replace />
+    if (
+      ["home", "finances", "goals", "transaction"].includes(target) &&
+      !financeWorkspace.trackingStartDate
+    ) {
+      return <Navigate to={`${ROUTES.financeSetup}/balance`} replace />
+    }
+    return renderScreen(target)
+  }
 
   return (
     <AppShell
@@ -449,29 +766,51 @@ export default function App() {
         }
       >
         <Routes>
-          <Route path="/" element={renderScreen("onboarding")} />
-          <Route path="/home" element={renderScreen("home")} />
-          <Route path="/finances" element={renderScreen("finances")} />
+          <Route
+            path="/"
+            element={
+              authStatus === "authenticated" ? (
+                <Navigate to={ROUTES.home} replace />
+              ) : (
+                renderScreen("onboarding")
+              )
+            }
+          />
+          <Route
+            path={ROUTES.auth}
+            element={
+              authStatus === "authenticated" ? (
+                <Navigate to={ROUTES.home} replace />
+              ) : authStatus === "loading" ? (
+                <div
+                  className="flex-1 bg-slate-50"
+                  role="status"
+                  aria-label="Verificando sessão"
+                />
+              ) : (
+                renderScreen("auth")
+              )
+            }
+          />
+          <Route path="/home" element={secured("home")} />
+          <Route path="/finances" element={secured("finances")} />
           <Route
             path="/finances/transactions/:id"
-            element={renderScreen("transaction")}
+            element={secured("transaction")}
           />
-          <Route path="/goals" element={renderScreen("goals")} />
-          <Route path="/learn" element={renderScreen("learn")} />
-          <Route
-            path="/learn/courses/:id"
-            element={renderScreen("courseDetail")}
-          />
-          <Route path="/learn/lessons/:id" element={renderScreen("lesson")} />
-          <Route path="/learn/quiz" element={renderScreen("quiz")} />
-          <Route path="/profile" element={renderScreen("profile")} />
+          <Route path="/goals" element={secured("goals")} />
+          <Route path="/learn" element={secured("learn")} />
+          <Route path="/learn/courses/:id" element={secured("courseDetail")} />
+          <Route path="/learn/lessons/:id" element={secured("lesson")} />
+          <Route path="/learn/quiz" element={secured("quiz")} />
+          <Route path="/profile" element={secured("profile")} />
           <Route
             path="/profile/personal-data"
-            element={renderScreen("personalData")}
+            element={secured("personalData")}
           />
           <Route
             path="/finances/setup/:section"
-            element={renderScreen("financeSetup")}
+            element={secured("financeSetup")}
           />
           <Route
             path="*"

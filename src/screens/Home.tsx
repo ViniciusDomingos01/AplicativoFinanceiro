@@ -25,11 +25,18 @@ import {
   Target,
   BookOpen,
 } from "lucide-react"
-import { monthlyData, courses, financialSummary } from "../data/mockData"
+import { courses } from "../data/mockData"
 import { BalanceAreaChart } from "../components/Charts"
-import { Card, ProgressBar, formatCurrency } from "../components/UI"
+import {
+  Card,
+  ProgressBar,
+  formatCurrency,
+  formatSignedCurrency,
+} from "../components/UI"
 import type { UserProfile } from "../data/mockData"
 import type { FinanceWorkspace } from "./FinanceSetup"
+import type { ApiSummary } from "../api/client"
+import { fromCents } from "../api/client"
 
 import type { NavigateToScreen } from "../app/routes"
 
@@ -39,6 +46,7 @@ interface HomeProps {
   user: UserProfile
   workspace: FinanceWorkspace
   courseProgress: Record<string, number>
+  summary: ApiSummary | null
 }
 
 export default function Home({
@@ -46,14 +54,25 @@ export default function Home({
   user,
   workspace,
   courseProgress,
+  summary,
 }: HomeProps) {
   const { balance, categories, goals, transactions } = workspace
-  const income = transactions
-    .filter((item) => item.type === "income")
-    .reduce((sum, item) => sum + item.amount, 0)
-  const expenses = transactions
-    .filter((item) => item.type === "expense")
-    .reduce((sum, item) => sum + item.amount, 0)
+  const income = summary
+    ? fromCents(summary.incomeCents)
+    : transactions
+        .filter((item) => item.type === "income")
+        .reduce((sum, item) => sum + item.amount, 0)
+  const expenses = summary
+    ? fromCents(summary.expensesCents)
+    : transactions
+        .filter((item) => item.type === "expense")
+        .reduce((sum, item) => sum + item.amount, 0)
+  const chartData =
+    summary?.monthlyData.map((item) => ({
+      month: item.month,
+      income: fromCents(item.incomeCents),
+      expenses: fromCents(item.expensesCents),
+    })) ?? []
   // Primeira meta para exibir no card de progresso do dashboard
   const mainGoal = goals[0]
 
@@ -118,13 +137,29 @@ export default function Home({
 
         {/* Saldo total em destaque com fonte monospace para números */}
         <div className="relative z-10 mb-4">
-          <p className="text-green-200 text-xs font-medium mb-1">Saldo total</p>
+          <p className="text-green-200 text-xs font-medium mb-1">
+            Patrimônio estimado
+          </p>
           <p
             className="text-white text-3xl font-bold tracking-tight"
             style={{ fontFamily: "DM Mono, monospace" }}
           >
             {formatCurrency(balance)}
           </p>
+          {summary && (
+            <p className="mt-1 text-[10px] text-green-100/80">
+              Valor informado e acompanhado por você; não é sincronizado com
+              bancos.
+            </p>
+          )}
+          {summary && (
+            <p className="mt-1 text-[10px] text-white/90">
+              Livre estimado{" "}
+              {formatSignedCurrency(fromCents(summary.availableBalanceCents))} ·
+              reservado para metas{" "}
+              {formatCurrency(fromCents(summary.reservedForGoalsCents))}
+            </p>
+          )}
         </div>
 
         {/*
@@ -133,7 +168,7 @@ export default function Home({
          * criando uma transição visual suave entre o header e os cards.
          */}
         <div className="relative z-10 -mb-4">
-          <BalanceAreaChart data={monthlyData} />
+          <BalanceAreaChart data={chartData} />
         </div>
       </div>
 
@@ -159,8 +194,10 @@ export default function Home({
               text: "text-red-500",
             },
             {
-              label: "Investido",
-              value: formatCurrency(financialSummary.totalInvested),
+              label: "Livre estimado",
+              value: formatSignedCurrency(
+                fromCents(summary?.availableBalanceCents),
+              ),
               icon: <Target size={14} />,
               color: "#7c3aed",
               bg: "bg-violet-50",

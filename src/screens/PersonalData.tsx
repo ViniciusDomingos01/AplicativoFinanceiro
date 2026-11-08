@@ -7,7 +7,7 @@ interface PersonalDataProps {
   user: UserProfile
   isFirstAccess: boolean
   onBack: () => void
-  onSave: (user: UserProfile) => void
+  onSave: (user: UserProfile) => void | Promise<void>
 }
 
 const goals = [
@@ -40,7 +40,7 @@ export default function PersonalData({
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (form.monthlyIncome.trim()) {
       const income = parseNumericInput(form.monthlyIncome)
@@ -50,7 +50,15 @@ export default function PersonalData({
       }
     }
     setError("")
-    onSave({ ...form, avatar: initials(form.name) || "FE" })
+    try {
+      await onSave({ ...form, avatar: initials(form.name) || "FE" })
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Não foi possível salvar seus dados.",
+      )
+    }
   }
 
   return (
@@ -219,8 +227,8 @@ export default function PersonalData({
           </div>
         )}
         <p className="text-center text-[10px] text-slate-400 mt-3 px-4">
-          Seus dados são usados apenas para personalizar sua experiência neste
-          protótipo.
+          Seus dados ficam associados à sua conta e são usados para personalizar
+          sua experiência.
         </p>
       </form>
     </div>

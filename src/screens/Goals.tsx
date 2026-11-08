@@ -36,7 +36,7 @@ interface GoalsProps {
   /** Função de navegação global recebida do App.tsx */
   navigate: NavigateToScreen
   goals: Goal[]
-  onChange: (goals: Goal[]) => void
+  onChange: (goals: Goal[]) => Promise<void>
 }
 
 export default function Goals({ navigate, goals, onChange }: GoalsProps) {
@@ -58,7 +58,7 @@ export default function Goals({ navigate, goals, onChange }: GoalsProps) {
     setDialog(type)
   }
 
-  function addContribution(event: FormEvent<HTMLFormElement>) {
+  async function addContribution(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!activeGoal) return
     const contribution = parseNumericInput(amount)
@@ -71,16 +71,24 @@ export default function Goals({ navigate, goals, onChange }: GoalsProps) {
       setError(`O valor máximo para esta meta é ${formatCurrency(remaining)}.`)
       return
     }
-    onChange(
-      goals.map((goal) =>
-        goal.id === activeGoal.id
-          ? { ...goal, current: goal.current + contribution }
-          : goal,
-      ),
-    )
-    setDialog(null)
-    setMessage("Valor adicionado à meta.")
-    window.setTimeout(() => setMessage(""), 2600)
+    try {
+      await onChange(
+        goals.map((goal) =>
+          goal.id === activeGoal.id
+            ? { ...goal, current: goal.current + contribution }
+            : goal,
+        ),
+      )
+      setDialog(null)
+      setMessage("Valor reservado para a meta. O patrimônio total não mudou.")
+      window.setTimeout(() => setMessage(""), 2600)
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Não foi possível registrar a contribuição.",
+      )
+    }
   }
 
   return (
@@ -116,10 +124,10 @@ export default function Goals({ navigate, goals, onChange }: GoalsProps) {
           {/* Card de visão geral consolidado */}
           <div className="bg-white/10 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
-              {/* Total já economizado */}
+              {/* Total declarado como reserva nas metas */}
               <div>
                 <p className="text-violet-200 text-xs font-medium">
-                  Total economizado
+                  Reservado para metas
                 </p>
                 <p className="text-white text-xl font-bold font-mono-data mt-0.5">
                   {formatCurrency(totalSaved)}
@@ -151,6 +159,10 @@ export default function Goals({ navigate, goals, onChange }: GoalsProps) {
         {/* ── Lista de metas individuais ── */}
         <div className="flex-1 phone-scroll overflow-y-auto px-4 py-4 space-y-3 pb-24">
           {message && <Toast message={message} />}
+          <p className="rounded-xl bg-violet-50 px-3 py-2 text-[11px] leading-5 text-violet-800">
+            Valores nas metas são reservas declaradas por você. Eles fazem parte
+            do patrimônio estimado e não contam como receitas.
+          </p>
           {goals.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center">
               <p className="text-sm font-semibold text-slate-700">

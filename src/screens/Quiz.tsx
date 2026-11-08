@@ -33,7 +33,11 @@ interface QuizProps {
   /** Função de navegação global — usada para voltar ou avançar */
   navigate: NavigateToScreen
   nextLesson: LessonType | null
-  onFinish: (result: { score: number; total: number; passed: boolean }) => void
+  onFinish: (result: {
+    score: number
+    total: number
+    passed: boolean
+  }) => Promise<void>
 }
 
 export default function Quiz({ navigate, nextLesson, onFinish }: QuizProps) {
@@ -42,6 +46,8 @@ export default function Quiz({ navigate, nextLesson, onFinish }: QuizProps) {
   const [answered, setAnswered] = useState(false) // se a resposta foi confirmada
   const [score, setScore] = useState(0) // total de acertos
   const [finished, setFinished] = useState(false) // se o quiz foi concluído
+  const [savingResult, setSavingResult] = useState(false)
+  const [saveError, setSaveError] = useState("")
   const finishNotified = useRef(false)
 
   const question = quizQuestions[current]
@@ -56,7 +62,7 @@ export default function Quiz({ navigate, nextLesson, onFinish }: QuizProps) {
   }
 
   /** Avança para a próxima questão ou finaliza o quiz */
-  function next() {
+  async function next() {
     if (current < total - 1) {
       setCurrent((c) => c + 1)
       setSelected(null) // limpa seleção para a nova questão
@@ -64,8 +70,21 @@ export default function Quiz({ navigate, nextLesson, onFinish }: QuizProps) {
     } else {
       if (!finishNotified.current) {
         const percentage = Math.round((score / total) * 100)
-        onFinish({ score, total, passed: percentage >= 70 })
-        finishNotified.current = true
+        setSavingResult(true)
+        setSaveError("")
+        try {
+          await onFinish({ score, total, passed: percentage >= 70 })
+          finishNotified.current = true
+        } catch (cause) {
+          setSaveError(
+            cause instanceof Error
+              ? cause.message
+              : "Não foi possível salvar seu resultado.",
+          )
+          setSavingResult(false)
+          return
+        }
+        setSavingResult(false)
       }
       setFinished(true)
     }
@@ -307,17 +326,29 @@ export default function Quiz({ navigate, nextLesson, onFinish }: QuizProps) {
             Confirmar resposta
           </button>
         ) : (
-          <button
-            onClick={next}
-            className="w-full py-4 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-            style={{
-              background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
-              fontFamily: "Outfit, sans-serif",
-            }}
-          >
-            {current < total - 1 ? "Próxima questão" : "Ver resultado"}
-            <ChevronRight size={16} />
-          </button>
+          <>
+            {saveError && (
+              <p role="alert" className="mb-2 text-center text-xs text-red-600">
+                {saveError}
+              </p>
+            )}
+            <button
+              onClick={() => void next()}
+              disabled={savingResult}
+              className="w-full py-4 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                fontFamily: "Outfit, sans-serif",
+              }}
+            >
+              {savingResult
+                ? "Salvando resultado…"
+                : current < total - 1
+                  ? "Próxima questão"
+                  : "Ver resultado"}
+              <ChevronRight size={16} />
+            </button>
+          </>
         )}
       </div>
     </div>

@@ -335,17 +335,23 @@ export function PrimaryButton({
   onClick,
   className = "",
   color = "#16a34a",
+  type = "button",
+  disabled = false,
   /** Cor de fundo do botão (padrão: verde primário) */
 }: {
   children: ReactNode
   onClick?: () => void
   className?: string
   color?: string
+  type?: "button" | "submit"
+  disabled?: boolean
 }) {
   return (
     <button
+      type={type}
+      disabled={disabled}
       onClick={onClick}
-      className={`w-full py-3.5 rounded-2xl font-semibold text-white text-sm active:scale-[0.98] transition-all ${className}`}
+      className={`w-full py-3.5 rounded-2xl font-semibold text-white text-sm active:scale-[0.98] transition-all disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
       style={{ backgroundColor: color, fontFamily: "Outfit, sans-serif" }}
     >
       {children}
@@ -367,6 +373,10 @@ export function formatCurrency(value: number) {
     style: "currency",
     currency: "BRL",
   }).format(Math.abs(value))
+}
+
+export function formatSignedCurrency(value: number) {
+  return value < 0 ? `−${formatCurrency(value)}` : formatCurrency(value)
 }
 
 export function parseNumericInput(value: string) {

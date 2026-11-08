@@ -19,6 +19,8 @@ import type { Goal, SpendingCategory, Transaction } from "../data/mockData"
 
 export interface FinanceWorkspace {
   balance: number
+  initialBalance?: number | null
+  trackingStartDate?: string | null
   categories: SpendingCategory[]
   goals: Goal[]
   transactions: Transaction[]
@@ -29,7 +31,7 @@ export type SetupSection = "balance" | "transaction" | "category" | "goal"
 interface FinanceSetupProps {
   workspace: FinanceWorkspace
   initialSection: SetupSection
-  onChange: (workspace: FinanceWorkspace) => void
+  onChange: (workspace: FinanceWorkspace) => Promise<void>
   onBack: () => void
 }
 
@@ -61,8 +63,13 @@ export default function FinanceSetup({
   onBack,
 }: FinanceSetupProps) {
   const [section, setSection] = useState<SetupSection>(initialSection)
-  const [balance, setBalance] = useState(String(workspace.balance))
+  const [balance, setBalance] = useState(String(workspace.initialBalance ?? 0))
+  const [trackingStartDate, setTrackingStartDate] = useState(
+    workspace.trackingStartDate ?? new Date().toISOString().slice(0, 10),
+  )
   const [categoryName, setCategoryName] = useState("")
+  const [categoryType, setCategoryType] =
+    useState<Transaction["type"]>("expense")
   const [goalForm, setGoalForm] = useState({
     title: "",
     target: "",
@@ -73,7 +80,8 @@ export default function FinanceSetup({
     title: "",
     amount: "",
     type: "expense" as Transaction["type"],
-    category: workspace.categories[0]?.name ?? "",
+    category:
+      workspace.categories.find((item) => item.type === "expense")?.name ?? "",
     date: new Date().toISOString().slice(0, 10),
     paymentMethod: "PIX",
     note: "",
@@ -87,6 +95,20 @@ export default function FinanceSetup({
     window.setTimeout(() => setMessage(""), 2200)
   }
 
+  async function persist(next: FinanceWorkspace, successMessage: string) {
+    try {
+      await onChange(next)
+      notify(successMessage)
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar as alterações.",
+        "error",
+      )
+    }
+  }
+
   function saveBalance(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const value = parseNumericInput(balance)
@@ -94,8 +116,18 @@ export default function FinanceSetup({
       notify("Informe um saldo válido.", "error")
       return
     }
-    onChange({ ...workspace, balance: value })
-    notify("Saldo atualizado com sucesso")
+    if (!trackingStartDate) {
+      notify("Informe a data de início do acompanhamento.", "error")
+      return
+    }
+    void persist(
+      {
+        ...workspace,
+        initialBalance: value,
+        trackingStartDate,
+      },
+      "Patrimônio inicial atualizado",
+    )
   }
 
   function addCategory(event: FormEvent<HTMLFormElement>) {
@@ -105,7 +137,8 @@ export default function FinanceSetup({
     if (
       workspace.categories.some(
         (category) =>
-          category.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+          category.name.toLocaleLowerCase() === name.toLocaleLowerCase() &&
+          category.type === categoryType,
       )
     ) {
       notify("Essa categoria já existe.", "error")
@@ -118,11 +151,14 @@ export default function FinanceSetup({
       color:
         categoryColors[workspace.categories.length % categoryColors.length],
       icon: "•",
+      type: categoryType,
     }
-    onChange({ ...workspace, categories: [...workspace.categories, category] })
+    void persist(
+      { ...workspace, categories: [...workspace.categories, category] },
+      "Categoria adicionada",
+    )
     setCategoryName("")
     setTransactionForm((current) => ({ ...current, category: name }))
-    notify("Categoria adicionada")
   }
 
   function addGoal(event: FormEvent<HTMLFormElement>) {
@@ -148,9 +184,11 @@ export default function FinanceSetup({
       target,
       deadline: goalForm.deadline || "Sem prazo",
     }
-    onChange({ ...workspace, goals: [...workspace.goals, goal] })
+    void persist(
+      { ...workspace, goals: [...workspace.goals, goal] },
+      "Meta criada",
+    )
     setGoalForm({ title: "", target: "", current: "", deadline: "" })
-    notify("Meta criada")
   }
 
   function addTransaction(event: FormEvent<HTMLFormElement>) {
@@ -196,20 +234,23 @@ export default function FinanceSetup({
           )
         : workspace.categories
 
-    onChange({
-      ...workspace,
-      balance:
-        workspace.balance + (transaction.type === "income" ? amount : -amount),
-      categories,
-      transactions: [transaction, ...workspace.transactions],
-    })
+    void persist(
+      {
+        ...workspace,
+        balance:
+          workspace.balance +
+          (transaction.type === "income" ? amount : -amount),
+        categories,
+        transactions: [transaction, ...workspace.transactions],
+      },
+      "Transação adicionada",
+    )
     setTransactionForm((current) => ({
       ...current,
       title: "",
       amount: "",
       note: "",
     }))
-    notify("Transação adicionada")
   }
 
   return (
@@ -290,14 +331,15 @@ export default function FinanceSetup({
               Informe seu saldo
             </h3>
             <p className="text-xs text-slate-400 mt-1 mb-5">
-              Digite o total disponível hoje nas suas contas.
+              Informe o patrimônio que você tinha na data em que começou a
+              acompanhar suas finanças.
             </p>
             <label className="block">
               <span className="block text-xs font-semibold text-slate-600 mb-1.5">
-                Saldo total
+                Patrimônio inicial (R$)
               </span>
               <input
-                aria-label="Saldo total em reais"
+                aria-label="Patrimônio inicial em reais"
                 required
                 inputMode="decimal"
                 value={balance}
@@ -306,6 +348,24 @@ export default function FinanceSetup({
                 placeholder="0,00"
               />
             </label>
+            <label className="mt-4 block">
+              <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Início do acompanhamento
+              </span>
+              <input
+                aria-label="Data de início do acompanhamento"
+                required
+                type="date"
+                value={trackingStartDate}
+                onChange={(event) => setTrackingStartDate(event.target.value)}
+                className={FINANCE_FIELD_CLASS}
+              />
+            </label>
+            <p className="mt-3 text-[11px] leading-5 text-slate-400">
+              O saldo será estimado com este valor e as movimentações
+              registradas a partir dessa data. Não é um saldo bancário
+              sincronizado.
+            </p>
             <button
               type="submit"
               className="w-full mt-5 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold"
@@ -327,6 +387,17 @@ export default function FinanceSetup({
               <p className="text-xs text-slate-400 mt-1 mb-4">
                 Crie grupos para entender melhor seus gastos.
               </p>
+              <select
+                aria-label="Tipo da categoria"
+                value={categoryType}
+                onChange={(event) =>
+                  setCategoryType(event.target.value as Transaction["type"])
+                }
+                className={`${FINANCE_FIELD_CLASS} mb-3`}
+              >
+                <option value="expense">Despesa</option>
+                <option value="income">Receita</option>
+              </select>
               <input
                 aria-label="Nome da categoria"
                 required
@@ -350,7 +421,7 @@ export default function FinanceSetup({
               <div className="flex flex-wrap gap-2">
                 {workspace.categories.map((category) => (
                   <span
-                    key={category.name}
+                    key={`${category.type}-${category.name}`}
                     className="rounded-full bg-slate-50 border border-slate-100 px-3 py-1.5 text-[10px] font-medium text-slate-600"
                   >
                     {category.name}
@@ -439,7 +510,7 @@ export default function FinanceSetup({
                 Nova transação
               </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Registre uma entrada ou saída do seu saldo.
+                Registre uma receita ou despesa informada por você.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -451,7 +522,14 @@ export default function FinanceSetup({
                     key={type}
                     type="button"
                     onClick={() =>
-                      setTransactionForm({ ...transactionForm, type })
+                      setTransactionForm({
+                        ...transactionForm,
+                        type,
+                        category:
+                          workspace.categories.find(
+                            (item) => item.type === type,
+                          )?.name ?? "",
+                      })
                     }
                     className={`flex items-center justify-center gap-2 rounded-2xl border py-3 text-xs font-bold ${
                       selected
@@ -507,9 +585,16 @@ export default function FinanceSetup({
                 }
                 className={FINANCE_FIELD_CLASS}
               >
-                {workspace.categories.map((category) => (
-                  <option key={category.name}>{category.name}</option>
-                ))}
+                {workspace.categories
+                  .filter(
+                    (category) =>
+                      !category.type || category.type === transactionForm.type,
+                  )
+                  .map((category) => (
+                    <option key={category.name} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
               </select>
               <input
                 aria-label="Data da transação"

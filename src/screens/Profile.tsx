@@ -41,6 +41,8 @@ interface ProfileProps {
   goals: Goal[]
   onLogout: () => void
   courseProgress: Record<string, number>
+  notificationsEnabled: boolean
+  onNotificationsChange: (enabled: boolean) => Promise<void>
 }
 
 export default function Profile({
@@ -49,24 +51,26 @@ export default function Profile({
   goals,
   onLogout,
   courseProgress,
+  notificationsEnabled,
+  onNotificationsChange,
 }: ProfileProps) {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [dialog, setDialog] =
     useState<"privacy" | "appearance" | "support" | null>(null)
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [message, setMessage] = useState("")
   // Dados de aprendizado (em produção, viriam de uma API)
-  const completedCourses =
-    3 +
-    Object.values(courseProgress).filter((progress) => progress >= 100).length
-  const totalHours = 12.5
-  const streak = 7 // dias consecutivos de estudo
+  const completedCourses = Object.values(courseProgress).filter(
+    (progress) => progress >= 100,
+  ).length
+  const coursesInProgress = Object.values(courseProgress).filter(
+    (progress) => progress > 0 && progress < 100,
+  ).length
 
   // Filtra cursos que o usuário já iniciou (têm progresso salvo)
   const inProgress = courses
     .map((course) => ({
       ...course,
-      progress: courseProgress[course.id] ?? course.progress,
+      progress: courseProgress[course.id],
     }))
     .filter((course) => course.progress !== undefined)
 
@@ -165,15 +169,15 @@ export default function Profile({
                 color: "#16a34a",
               },
               {
-                icon: "⏱️",
-                value: `${totalHours}h`,
-                label: "Estudadas",
+                icon: "📚",
+                value: coursesInProgress,
+                label: "Em progresso",
                 color: "#2563eb",
               },
               {
-                icon: "🔥",
-                value: streak,
-                label: "Dias seguidos",
+                icon: "⭐",
+                value: user.xp,
+                label: "XP",
                 color: "#d97706",
               },
             ].map((stat) => (
@@ -348,12 +352,21 @@ export default function Profile({
                 type="button"
                 onClick={() => {
                   if (item.id === "notifications") {
-                    setNotificationsEnabled((enabled) => !enabled)
-                    setMessage(
-                      notificationsEnabled
-                        ? "Notificações desativadas."
-                        : "Notificações ativadas.",
-                    )
+                    void onNotificationsChange(!notificationsEnabled)
+                      .then(() =>
+                        setMessage(
+                          !notificationsEnabled
+                            ? "Notificações ativadas."
+                            : "Notificações desativadas.",
+                        ),
+                      )
+                      .catch((error: unknown) =>
+                        setMessage(
+                          error instanceof Error
+                            ? error.message
+                            : "Não foi possível salvar a preferência.",
+                        ),
+                      )
                   } else {
                     setDialog(item.id as "privacy" | "appearance" | "support")
                   }
@@ -422,10 +435,10 @@ export default function Profile({
         >
           <p className="text-sm leading-relaxed text-slate-600">
             {dialog === "privacy"
-              ? "Esta versão usa somente dados demonstrativos e estado local da página. Nenhum serviço de conta ou envio de dados está conectado."
+              ? "Seus registros são privados da sua conta. O aplicativo não se conecta a bancos nem sincroniza saldos."
               : dialog === "appearance"
                 ? "O protótipo está usando o tema claro. A preferência de aparência ainda não foi definida para esta versão."
-                : "Não há canal de suporte conectado neste protótipo. Consulte a equipe responsável pelo projeto para obter ajuda."}
+                : "O canal de suporte ainda não foi configurado. Consulte a equipe responsável pelo aplicativo para obter ajuda."}
           </p>
         </Modal>
       )}
@@ -435,8 +448,8 @@ export default function Profile({
           onClose={() => setConfirmingLogout(false)}
         >
           <p className="text-sm leading-relaxed text-slate-600">
-            Você voltará ao início do protótipo. Os dados desta sessão serão
-            reiniciados.
+            Você será desconectado. Seus registros permanecerão salvos na sua
+            conta.
           </p>
           <div className="mt-5 flex gap-3">
             <button

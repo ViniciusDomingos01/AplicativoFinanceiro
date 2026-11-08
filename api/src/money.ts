@@ -8,10 +8,15 @@ export function estimatedBalanceCents(
   initialBalanceCents: bigint,
   startDate: Date,
   asOfDate: Date,
-  transactions: Array<{ amountCents: bigint; type: "INCOME" | "EXPENSE"; date: Date }>,
+  transactions: Array<{
+    amountCents: bigint
+    type: "INCOME" | "EXPENSE"
+    date: Date
+  }>,
 ) {
   return transactions.reduce((balance, transaction) => {
-    if (transaction.date < startDate || transaction.date > asOfDate) return balance
+    if (transaction.date < startDate || transaction.date > asOfDate)
+      return balance
     return transaction.type === "INCOME"
       ? balance + transaction.amountCents
       : balance - transaction.amountCents
@@ -21,7 +26,9 @@ export function estimatedBalanceCents(
 export function toSafeCurrencyNumber(cents: bigint) {
   const asNumber = Number(cents)
   if (!Number.isSafeInteger(asNumber)) {
-    throw new RangeError("Valor monetário fora do intervalo suportado pela interface.")
+    throw new RangeError(
+      "Valor monetário fora do intervalo suportado pela interface.",
+    )
   }
   return asNumber / 100
 }

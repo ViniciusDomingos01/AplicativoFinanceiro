@@ -48,8 +48,8 @@ interface TransactionDetailProps {
   /** Função de navegação global — usada para voltar à tela de finanças */
   navigate: NavigateToScreen
   categories: SpendingCategory[]
-  onSave: (transaction: Transaction) => void
-  onDelete: () => void
+  onSave: (transaction: Transaction) => Promise<void>
+  onDelete: () => Promise<void>
 }
 
 export default function TransactionDetail({
@@ -65,6 +65,7 @@ export default function TransactionDetail({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     title: t.title,
     amount: String(t.amount),
@@ -87,7 +88,7 @@ export default function TransactionDetail({
     })
   }, [t])
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const amount = parseNumericInput(form.amount)
     if (!form.title.trim() || !Number.isFinite(amount) || amount <= 0) {
@@ -95,18 +96,29 @@ export default function TransactionDetail({
       return
     }
     const category = categories.find((item) => item.name === form.category)
-    onSave({
-      ...t,
-      ...form,
-      title: form.title.trim(),
-      amount,
-      categoryColor: category?.color ?? t.categoryColor,
-      icon: category?.icon ?? t.icon,
-      note: form.note.trim() || undefined,
-    })
-    setError("")
-    setMessage("Transação atualizada.")
-    setEditing(false)
+    setSaving(true)
+    try {
+      await onSave({
+        ...t,
+        ...form,
+        title: form.title.trim(),
+        amount,
+        categoryColor: category?.color ?? t.categoryColor,
+        icon: category?.icon ?? t.icon,
+        note: form.note.trim() || undefined,
+      })
+      setError("")
+      setMessage("Transação atualizada.")
+      setEditing(false)
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Não foi possível salvar a transação.",
+      )
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -328,9 +340,15 @@ export default function TransactionDetail({
                 <select
                   value={form.type}
                   onChange={(event) =>
-                    setForm({
-                      ...form,
-                      type: event.target.value as Transaction["type"],
+                    setForm((current) => {
+                      const type = event.target.value as Transaction["type"]
+                      return {
+                        ...current,
+                        type,
+                        category:
+                          categories.find((item) => item.type === type)?.name ??
+                          "",
+                      }
                     })
                   }
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal"
@@ -361,12 +379,16 @@ export default function TransactionDetail({
                 }
                 className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal"
               >
-                {!categories.some((item) => item.name === form.category) && (
-                  <option>{form.category}</option>
-                )}
-                {categories.map((item) => (
-                  <option key={item.name}>{item.name}</option>
-                ))}
+                {!categories.some(
+                  (item) =>
+                    item.name === form.category &&
+                    (!item.type || item.type === form.type),
+                ) && <option>{form.category}</option>}
+                {categories
+                  .filter((item) => !item.type || item.type === form.type)
+                  .map((item) => (
+                    <option key={item.name}>{item.name}</option>
+                  ))}
               </select>
             </label>
             <label className="block text-xs font-semibold text-slate-600">
@@ -394,7 +416,7 @@ export default function TransactionDetail({
               type="submit"
               className="w-full rounded-xl bg-blue-600 py-3 text-sm font-bold text-white"
             >
-              Salvar alterações
+              {saving ? "Salvando…" : "Salvar alterações"}
             </button>
           </form>
         </Modal>
@@ -405,8 +427,14 @@ export default function TransactionDetail({
           onClose={() => setConfirmingDelete(false)}
         >
           <p className="text-sm leading-relaxed text-slate-600">
-            A transação “{t.title}” será removida deste protótipo.
+            A transação “{t.title}” será removida dos seus registros. Os
+            indicadores serão recalculados.
           </p>
+          {error && (
+            <div className="mt-3">
+              <Toast message={error} kind="error" />
+            </div>
+          )}
           <div className="mt-5 flex gap-3">
             <button
               type="button"
@@ -417,7 +445,16 @@ export default function TransactionDetail({
             </button>
             <button
               type="button"
-              onClick={onDelete}
+              onClick={() =>
+                void onDelete().catch((cause: unknown) =>
+                  setError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Não foi possível excluir a transação.",
+                  ),
+                )
+              }
+              disabled={saving}
               className="flex-1 rounded-xl bg-red-600 py-3 text-sm font-bold text-white"
             >
               Excluir

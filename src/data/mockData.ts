@@ -41,21 +41,21 @@ export const user: UserProfile = {
   phone: "(11) 99999-9999",
   monthlyIncome: "7200",
   financialGoal: "Criar uma reserva de emergência",
-  avatar: "AS",                    // iniciais para o avatar gerado
-  level: "Investidor Iniciante",   // nível de progresso no app
-  xp: 1240,                        // pontos de experiência acumulados
-  xpNext: 2000,                    // XP necessário para o próximo nível
+  avatar: "AS", // iniciais para o avatar gerado
+  level: "Investidor Iniciante", // nível de progresso no app
+  xp: 1240, // pontos de experiência acumulados
+  xpNext: 2000, // XP necessário para o próximo nível
   memberSince: "Jan 2024",
 }
 
 // ── Resumo financeiro do mês ───────────────────────────────────────────────
 
 export const financialSummary = {
-  totalBalance: 18450.75,    // saldo total consolidado (contas + investimentos)
-  monthIncome: 7200.0,       // total de receitas no mês atual
-  monthExpenses: 3840.5,     // total de despesas no mês atual
-  totalInvested: 12300.0,    // patrimônio total investido
-  savingsRate: 47,           // taxa de poupança em % (receita - despesas / receita)
+  totalBalance: 18450.75, // saldo total consolidado (contas + investimentos)
+  monthIncome: 7200.0, // total de receitas no mês atual
+  monthExpenses: 3840.5, // total de despesas no mês atual
+  totalInvested: 12300.0, // patrimônio total investido
+  savingsRate: 47, // taxa de poupança em % (receita - despesas / receita)
 }
 
 // ── Dados para gráficos ────────────────────────────────────────────────────
@@ -80,15 +80,16 @@ export const balanceHistory = [12000, 13200, 11800, 14500, 15200, 16100, 18450]
  */
 export interface Transaction {
   id: string
+  categoryId?: string
   title: string
-  amount: number                   // sempre positivo (ex: 420.30)
+  amount: number // sempre positivo (ex: 420.30)
   type: "income" | "expense"
   category: string
-  categoryColor: string            // cor hex para ícones e badges
-  date: string                     // formato ISO: "YYYY-MM-DD"
+  categoryColor: string // cor hex para ícones e badges
+  date: string // formato ISO: "YYYY-MM-DD"
   paymentMethod: string
-  note?: string                    // observação opcional
-  icon: string                     // emoji representando a categoria
+  note?: string // observação opcional
+  icon: string // emoji representando a categoria
 }
 
 export const transactions: Transaction[] = [
@@ -176,7 +177,7 @@ export const transactions: Transaction[] = [
     id: "8",
     title: "Tesouro Direto",
     amount: 500.0,
-    type: "expense",                    // aporte registrado como saída do fluxo mensal
+    type: "expense", // aporte registrado como saída do fluxo mensal
     category: "Investimento",
     categoryColor: "#16a34a",
     date: "2025-07-15",
@@ -193,6 +194,8 @@ export const transactions: Transaction[] = [
  * `percentage` representa a fatia do gasto total (0–100).
  */
 export interface SpendingCategory {
+  id?: string
+  type?: "income" | "expense"
   name: string
   amount: number
   percentage: number
@@ -201,11 +204,35 @@ export interface SpendingCategory {
 }
 
 export const spendingCategories: SpendingCategory[] = [
-  { name: "Alimentação", amount: 576.3,  percentage: 35, color: "#f59e0b", icon: "🍽️" },
-  { name: "Casa",        amount: 387.4,  percentage: 24, color: "#d97706", icon: "🏠" },
-  { name: "Lazer",       amount: 255.9,  percentage: 16, color: "#dc2626", icon: "🎮" },
-  { name: "Saúde",       amount: 189.5,  percentage: 12, color: "#0891b2", icon: "💊" },
-  { name: "Transporte",  amount: 210.0,  percentage: 13, color: "#7c3aed", icon: "🚗" },
+  {
+    name: "Alimentação",
+    amount: 576.3,
+    percentage: 35,
+    color: "#f59e0b",
+    icon: "🍽️",
+  },
+  { name: "Casa", amount: 387.4, percentage: 24, color: "#d97706", icon: "🏠" },
+  {
+    name: "Lazer",
+    amount: 255.9,
+    percentage: 16,
+    color: "#dc2626",
+    icon: "🎮",
+  },
+  {
+    name: "Saúde",
+    amount: 189.5,
+    percentage: 12,
+    color: "#0891b2",
+    icon: "💊",
+  },
+  {
+    name: "Transporte",
+    amount: 210.0,
+    percentage: 13,
+    color: "#7c3aed",
+    icon: "🚗",
+  },
 ]
 
 // ── Metas financeiras ──────────────────────────────────────────────────────
@@ -217,11 +244,12 @@ export const spendingCategories: SpendingCategory[] = [
 export interface Goal {
   id: string
   title: string
-  icon: string            // emoji temático da meta
-  color: string           // cor hex para barra de progresso e badges
-  current: number         // valor acumulado até agora
-  target: number          // valor objetivo da meta
-  deadline: string        // prazo no formato "Mês AAAA"
+  icon: string // emoji temático da meta
+  color: string // cor hex para barra de progresso e badges
+  current: number // valor acumulado até agora
+  target: number // valor objetivo da meta
+  deadline: string // prazo no formato "Mês AAAA"
+  deadlineDate?: string
 }
 
 export const goals: Goal[] = [
@@ -231,7 +259,7 @@ export const goals: Goal[] = [
     icon: "🛡️",
     color: "#16a34a",
     current: 12300,
-    target: 21600,         // equivale a 3 meses de despesas
+    target: 21600, // equivale a 3 meses de despesas
     deadline: "Dez 2025",
   },
   {
@@ -275,26 +303,27 @@ export interface Course {
   description: string
   category: string
   level: "Iniciante" | "Intermediário" | "Avançado"
-  duration: string           // ex: "4h 30min"
-  lessons: number            // total de aulas
-  progress?: number          // percentual concluído (undefined = não iniciado)
-  rating: number             // avaliação média (0–5)
-  students: number           // número de alunos matriculados
-  isFree: boolean            // se o curso é gratuito
-  color: string              // cor hex para temas visuais do curso
-  emoji: string              // emoji representando o tema do curso
+  duration: string // ex: "4h 30min"
+  lessons: number // total de aulas
+  progress?: number // percentual concluído (undefined = não iniciado)
+  rating: number // avaliação média (0–5)
+  students: number // número de alunos matriculados
+  isFree: boolean // se o curso é gratuito
+  color: string // cor hex para temas visuais do curso
+  emoji: string // emoji representando o tema do curso
 }
 
 export const courses: Course[] = [
   {
     id: "1",
     title: "Finanças Pessoais do Zero",
-    description: "Aprenda a organizar seu dinheiro, criar um orçamento e sair das dívidas de uma vez por todas.",
+    description:
+      "Aprenda a organizar seu dinheiro, criar um orçamento e sair das dívidas de uma vez por todas.",
     category: "Educação Financeira",
     level: "Iniciante",
     duration: "4h 30min",
     lessons: 18,
-    progress: 65,            // usuário já está na metade do curso
+    progress: 65, // usuário já está na metade do curso
     rating: 4.9,
     students: 12400,
     isFree: false,
@@ -304,7 +333,8 @@ export const courses: Course[] = [
   {
     id: "2",
     title: "Introdução aos Investimentos",
-    description: "Entenda os conceitos básicos de investimentos, perfil de investidor e como começar a investir.",
+    description:
+      "Entenda os conceitos básicos de investimentos, perfil de investidor e como começar a investir.",
     category: "Investimentos",
     level: "Iniciante",
     duration: "3h 15min",
@@ -319,7 +349,8 @@ export const courses: Course[] = [
   {
     id: "3",
     title: "Tesouro Direto na Prática",
-    description: "Passo a passo para comprar seus primeiros títulos do Tesouro Direto com segurança.",
+    description:
+      "Passo a passo para comprar seus primeiros títulos do Tesouro Direto com segurança.",
     category: "Renda Fixa",
     level: "Iniciante",
     duration: "2h 45min",
@@ -333,7 +364,8 @@ export const courses: Course[] = [
   {
     id: "4",
     title: "FIIs: Fundos Imobiliários",
-    description: "Como analisar e investir em fundos imobiliários para renda passiva mensal.",
+    description:
+      "Como analisar e investir em fundos imobiliários para renda passiva mensal.",
     category: "Fundos Imobiliários",
     level: "Intermediário",
     duration: "5h 20min",
@@ -347,7 +379,8 @@ export const courses: Course[] = [
   {
     id: "5",
     title: "Planejamento Financeiro",
-    description: "Monte seu plano financeiro para os próximos 5 anos e alcance a liberdade financeira.",
+    description:
+      "Monte seu plano financeiro para os próximos 5 anos e alcance a liberdade financeira.",
     category: "Planejamento",
     level: "Intermediário",
     duration: "3h 50min",
@@ -361,7 +394,8 @@ export const courses: Course[] = [
   {
     id: "6",
     title: "Introdução à Bolsa de Valores",
-    description: "Entenda como funciona a bolsa, o que são ações e como analisar empresas.",
+    description:
+      "Entenda como funciona a bolsa, o que são ações e como analisar empresas.",
     category: "Ações",
     level: "Iniciante",
     duration: "6h 10min",
@@ -383,8 +417,8 @@ export const courses: Course[] = [
 export interface Lesson {
   id: string
   title: string
-  duration: string          // ex: "8min"
-  completed: boolean        // se o usuário já leu/completou
+  duration: string // ex: "8min"
+  completed: boolean // se o usuário já leu/completou
   type: "text" | "quiz"
 }
 
@@ -404,28 +438,88 @@ export const courseModules: Module[] = [
     id: "m1",
     title: "Módulo 1: Diagnóstico Financeiro",
     lessons: [
-      { id: "l1", title: "Por onde começo?",              duration: "8min",  completed: true,  type: "text" },
-      { id: "l2", title: "Calculando sua situação atual", duration: "12min", completed: true,  type: "text" },
-      { id: "l3", title: "Quiz: Diagnóstico",             duration: "5min",  completed: true,  type: "quiz" },
+      {
+        id: "l1",
+        title: "Por onde começo?",
+        duration: "8min",
+        completed: true,
+        type: "text",
+      },
+      {
+        id: "l2",
+        title: "Calculando sua situação atual",
+        duration: "12min",
+        completed: true,
+        type: "text",
+      },
+      {
+        id: "l3",
+        title: "Quiz: Diagnóstico",
+        duration: "5min",
+        completed: true,
+        type: "quiz",
+      },
     ],
   },
   {
     id: "m2",
     title: "Módulo 2: Orçamento Inteligente",
     lessons: [
-      { id: "l4", title: "A regra 50/30/20",              duration: "15min", completed: true,  type: "text" },
-      { id: "l5", title: "Criando seu orçamento pessoal", duration: "18min", completed: false, type: "text" }, // próxima aula do usuário
-      { id: "l6", title: "Ferramentas de controle",       duration: "10min", completed: false, type: "text" },
-      { id: "l7", title: "Quiz: Orçamento",               duration: "5min",  completed: false, type: "quiz" },
+      {
+        id: "l4",
+        title: "A regra 50/30/20",
+        duration: "15min",
+        completed: true,
+        type: "text",
+      },
+      {
+        id: "l5",
+        title: "Criando seu orçamento pessoal",
+        duration: "18min",
+        completed: false,
+        type: "text",
+      }, // próxima aula do usuário
+      {
+        id: "l6",
+        title: "Ferramentas de controle",
+        duration: "10min",
+        completed: false,
+        type: "text",
+      },
+      {
+        id: "l7",
+        title: "Quiz: Orçamento",
+        duration: "5min",
+        completed: false,
+        type: "quiz",
+      },
     ],
   },
   {
     id: "m3",
     title: "Módulo 3: Eliminando Dívidas",
     lessons: [
-      { id: "l8",  title: "Tipos de dívidas e juros",      duration: "14min", completed: false, type: "text" },
-      { id: "l9",  title: "Estratégias para quitar dívidas", duration: "20min", completed: false, type: "text" },
-      { id: "l10", title: "Negociação com credores",         duration: "12min", completed: false, type: "text" },
+      {
+        id: "l8",
+        title: "Tipos de dívidas e juros",
+        duration: "14min",
+        completed: false,
+        type: "text",
+      },
+      {
+        id: "l9",
+        title: "Estratégias para quitar dívidas",
+        duration: "20min",
+        completed: false,
+        type: "text",
+      },
+      {
+        id: "l10",
+        title: "Negociação com credores",
+        duration: "12min",
+        completed: false,
+        type: "text",
+      },
     ],
   },
 ]
@@ -439,10 +533,12 @@ export const courseModules: Module[] = [
 export const quizQuestions = [
   {
     id: 1,
-    question: "Qual é a principal recomendação da regra 50/30/20 para gastos com necessidades?",
+    question:
+      "Qual é a principal recomendação da regra 50/30/20 para gastos com necessidades?",
     options: ["30% da renda", "50% da renda", "20% da renda", "70% da renda"],
     correct: 1,
-    explanation: "A regra 50/30/20 recomenda que 50% da renda seja destinada a necessidades básicas.",
+    explanation:
+      "A regra 50/30/20 recomenda que 50% da renda seja destinada a necessidades básicas.",
   },
   {
     id: 2,
@@ -454,7 +550,8 @@ export const quizQuestions = [
       "Limite do cartão de crédito",
     ],
     correct: 1,
-    explanation: "A reserva de emergência é um valor guardado para cobrir imprevistos sem comprometer seu planejamento.",
+    explanation:
+      "A reserva de emergência é um valor guardado para cobrir imprevistos sem comprometer seu planejamento.",
   },
   {
     id: 3,
@@ -466,7 +563,8 @@ export const quizQuestions = [
       "Empréstimo pessoal de alta taxa",
     ],
     correct: 2,
-    explanation: "O financiamento imobiliário tem juros menores e financia um bem que pode se valorizar.",
+    explanation:
+      "O financiamento imobiliário tem juros menores e financia um bem que pode se valorizar.",
   },
 ]
 
@@ -477,14 +575,14 @@ export const quizQuestions = [
  * O primeiro item ("Todos") funciona como reset do filtro.
  */
 export const learnCategories = [
-  { name: "Todos",        icon: "🌟", active: true },
-  { name: "Educação",     icon: "📚" },
+  { name: "Todos", icon: "🌟", active: true },
+  { name: "Educação", icon: "📚" },
   { name: "Investimentos", icon: "📊" },
-  { name: "Renda Fixa",   icon: "🏦" },
-  { name: "FIIs",         icon: "🏢" },
-  { name: "Ações",        icon: "📈" },
+  { name: "Renda Fixa", icon: "🏦" },
+  { name: "FIIs", icon: "🏢" },
+  { name: "Ações", icon: "📈" },
   { name: "Planejamento", icon: "🎯" },
-  { name: "Economia",     icon: "💡" },
+  { name: "Economia", icon: "💡" },
 ]
 
 // ── Artigos rápidos ────────────────────────────────────────────────────────

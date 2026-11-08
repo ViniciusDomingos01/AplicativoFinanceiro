@@ -20,18 +20,20 @@
  * - O conteúdo scrollável tem espaço extra para o FAB e o bottom nav.
  */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus, TrendingUp, TrendingDown, ArrowUpRight } from "lucide-react"
-import { financialSummary, monthlyData } from "../data/mockData"
 import { MonthlyBarChart } from "../components/Charts"
 import {
   Card,
   ProgressBar,
   formatCurrency,
   SectionHeader,
+  formatSignedCurrency,
 } from "../components/UI"
 import type { Transaction } from "../data/mockData"
 import type { FinanceWorkspace } from "./FinanceSetup"
+import type { ApiSummary } from "../api/client"
+import { fromCents } from "../api/client"
 
 /** Opções de filtro de período exibidas como chips selecionáveis */
 import type { NavigateToScreen } from "../app/routes"
@@ -44,31 +46,30 @@ const periodDays: Record<string, number> = {
   "6m": 180,
   "1a": 365,
 }
-const periodMonths: Record<string, number> = {
-  "7d": 1,
-  "30d": 1,
-  "3m": 3,
-  "6m": 6,
-  "1a": 12,
-}
-
 interface FinancesProps {
   /** Função de navegação global recebida do App.tsx */
   navigate: NavigateToScreen
   workspace: FinanceWorkspace
+  initialSummary: ApiSummary | null
+  onPeriodChange: (from: string, through: string) => Promise<ApiSummary>
 }
 
-export default function Finances({ navigate, workspace }: FinancesProps) {
+export default function Finances({
+  navigate,
+  workspace,
+  initialSummary,
+  onPeriodChange,
+}: FinancesProps) {
   const { transactions, balance } = workspace
   const [activePeriod, setActivePeriod] = useState("30d")
+  const [summary, setSummary] = useState(initialSummary)
+  const [loadingSummary, setLoadingSummary] = useState(false)
+  const [summaryError, setSummaryError] = useState("")
   const [showAllTransactions, setShowAllTransactions] = useState(false)
 
-  const latestTransactionDate = transactions.reduce(
-    (latest, transaction) =>
-      transaction.date > latest ? transaction.date : latest,
-    transactions[0]?.date ?? new Date().toISOString().slice(0, 10),
+  const periodEnd = new Date(
+    `${new Date().toISOString().slice(0, 10)}T12:00:00`,
   )
-  const periodEnd = new Date(`${latestTransactionDate}T12:00:00`)
   const periodStart = new Date(periodEnd)
   periodStart.setDate(periodStart.getDate() - periodDays[activePeriod] + 1)
   const filteredTransactions = transactions.filter((transaction) => {
@@ -76,10 +77,28 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
     return date >= periodStart && date <= periodEnd
   })
 
+  useEffect(() => {
+    const through = new Date().toISOString().slice(0, 10)
+    const from = new Date(`${through}T00:00:00.000Z`)
+    from.setUTCDate(from.getUTCDate() - periodDays[activePeriod] + 1)
+    setLoadingSummary(true)
+    setSummaryError("")
+    onPeriodChange(from.toISOString().slice(0, 10), through)
+      .then(setSummary)
+      .catch((error: unknown) =>
+        setSummaryError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar o período.",
+        ),
+      )
+      .finally(() => setLoadingSummary(false))
+  }, [activePeriod, onPeriodChange])
+
   // Separa transações por tipo para exibição na listagem
   const income = filteredTransactions.filter((t) => t.type === "income")
   const expenses = filteredTransactions.filter((t) => t.type === "expense")
-  const filteredCategories = expenses.reduce<Array<{
+  const transactionCategories = expenses.reduce<Array<{
     name: string
     amount: number
     percentage: number
@@ -100,16 +119,25 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
     }
     return result
   }, [])
-  const filteredExpenseTotal = filteredCategories.reduce(
+  const transactionExpenseTotal = transactionCategories.reduce(
     (sum, item) => sum + item.amount,
     0,
   )
-  filteredCategories.forEach((item) => {
+  transactionCategories.forEach((item) => {
     item.percentage =
-      filteredExpenseTotal > 0
-        ? Math.round((item.amount / filteredExpenseTotal) * 100)
+      transactionExpenseTotal > 0
+        ? Math.round((item.amount / transactionExpenseTotal) * 100)
         : 0
   })
+  const filteredCategories = summary
+    ? summary.spendingCategories.map((item) => ({
+        name: item.name,
+        amount: fromCents(item.amountCents),
+        percentage: item.percentage,
+        color: item.color ?? "#64748b",
+        icon: item.icon ?? "•",
+      }))
+    : transactionCategories
 
   /**
    * Agrupa transações por data para renderizar cabeçalhos de dia.
@@ -126,7 +154,18 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) =>
     b.localeCompare(a),
   )
-  const chartData = monthlyData.slice(-periodMonths[activePeriod])
+  const chartData =
+    summary?.monthlyData.map((item) => ({
+      month: item.month,
+      income: fromCents(item.incomeCents),
+      expenses: fromCents(item.expensesCents),
+    })) ?? []
+  const displayedIncome = summary
+    ? fromCents(summary.incomeCents)
+    : income.reduce((sum, item) => sum + item.amount, 0)
+  const displayedExpenses = summary
+    ? fromCents(summary.expensesCents)
+    : expenses.reduce((sum, item) => sum + item.amount, 0)
   const dateLabel = periodEnd.toLocaleDateString("pt-BR", {
     month: "short",
     year: "numeric",
@@ -161,33 +200,42 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
             </span>
           </div>
 
-          {/* Saldo total em destaque */}
+          {/* Patrimônio estimado informado pelo usuário */}
           <div className="mb-5">
-            <p className="text-blue-200 text-xs mb-1">Saldo atual</p>
+            <p className="text-blue-200 text-xs mb-1">Patrimônio estimado</p>
             <p
               className="text-white text-3xl font-bold"
               style={{ fontFamily: "DM Mono, monospace" }}
             >
               {formatCurrency(balance)}
             </p>
+            {summary && (
+              <p className="mt-1 text-[10px] leading-4 text-blue-100/80">
+                Livre estimado{" "}
+                {formatSignedCurrency(fromCents(summary.availableBalanceCents))}{" "}
+                · reservado para metas{" "}
+                {formatCurrency(fromCents(summary.reservedForGoalsCents))}. Não
+                sincronizado com bancos.
+              </p>
+            )}
           </div>
 
-          {/* Mini cards: receitas / despesas / investido */}
+          {/* Indicadores do período, calculados pela API */}
           <div className="grid grid-cols-3 gap-2">
             {[
               {
                 label: "Receitas",
-                value: income.reduce((sum, item) => sum + item.amount, 0),
+                value: displayedIncome,
                 color: "#4ade80",
               },
               {
                 label: "Despesas",
-                value: expenses.reduce((sum, item) => sum + item.amount, 0),
+                value: displayedExpenses,
                 color: "#fca5a5",
               },
               {
-                label: "Investido",
-                value: financialSummary.totalInvested,
+                label: "Livre estimado",
+                value: fromCents(summary?.availableBalanceCents),
                 color: "#c4b5fd",
               },
             ].map((s) => (
@@ -199,11 +247,23 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
                   className="font-bold text-xs mt-0.5"
                   style={{ color: s.color, fontFamily: "DM Mono, monospace" }}
                 >
-                  {formatCurrency(s.value)}
+                  {s.label === "Livre estimado"
+                    ? formatSignedCurrency(s.value)
+                    : formatCurrency(s.value)}
                 </p>
               </div>
             ))}
           </div>
+          {loadingSummary && (
+            <p role="status" className="mt-2 text-[10px] text-white/70">
+              Atualizando período…
+            </p>
+          )}
+          {summaryError && (
+            <p role="alert" className="mt-2 text-[10px] text-red-100">
+              {summaryError}
+            </p>
+          )}
         </div>
 
         {/* ── Conteúdo principal ── */}
