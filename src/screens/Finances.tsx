@@ -24,16 +24,23 @@ import { useState } from "react"
 import { Plus, TrendingUp, TrendingDown, ArrowUpRight } from "lucide-react"
 import { financialSummary, monthlyData } from "../data/mockData"
 import { MonthlyBarChart } from "../components/Charts"
-import { Card, ProgressBar, formatCurrency, SectionHeader } from "../components/UI"
+import {
+  Card,
+  ProgressBar,
+  formatCurrency,
+  SectionHeader,
+} from "../components/UI"
 import type { Transaction } from "../data/mockData"
 import type { FinanceWorkspace } from "./FinanceSetup"
 
 /** Opções de filtro de período exibidas como chips selecionáveis */
 const periods = ["7d", "30d", "3m", "6m", "1a"]
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface FinancesProps {
   /** Função de navegação global recebida do App.tsx */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
   workspace: FinanceWorkspace
 }
 
@@ -50,14 +57,17 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
    * Agrupa transações por data para renderizar cabeçalhos de dia.
    * Resultado: { "2025-07-01": [tx1, tx2], "2025-07-03": [tx3] }
    */
-  const groupedTransactions = transactions.reduce<Record<string, Transaction[]>>((acc, t) => {
-    if (!acc[t.date]) acc[t.date] = []
-    acc[t.date].push(t)
-    return acc
-  }, {})
+  const groupedTransactions =
+    transactions.reduce<Record<string, Transaction[]>>((acc, t) => {
+      if (!acc[t.date]) acc[t.date] = []
+      acc[t.date].push(t)
+      return acc
+    }, {})
 
   // Ordena as datas em ordem decrescente (mais recente primeiro)
-  const sortedDates = Object.keys(groupedTransactions).sort((a, b) => b.localeCompare(a))
+  const sortedDates = Object.keys(groupedTransactions).sort((a, b) =>
+    b.localeCompare(a),
+  )
 
   return (
     /*
@@ -65,18 +75,22 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
      * absolutamente em relação a este componente (não ao frame do celular).
      */
     <div className="relative flex flex-col flex-1 overflow-hidden">
-
       {/* ── Área de conteúdo com scroll interno ── */}
       <div className="phone-scroll flex-1 overflow-y-auto bg-slate-50 pb-40">
-
         {/* ── Header com gradiente azul ── */}
         <div
           className="px-5 pt-14 pb-6"
-          style={{ background: "linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #4f46e5 100%)" }}
+          style={{
+            background:
+              "linear-gradient(135deg, #1d4ed8 0%, #2563eb 60%, #4f46e5 100%)",
+          }}
         >
           {/* Título da tela + mês de referência */}
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-white text-xl font-bold" style={{ fontFamily: "Outfit, sans-serif" }}>
+            <h2
+              className="text-white text-xl font-bold"
+              style={{ fontFamily: "Outfit, sans-serif" }}
+            >
               Finanças
             </h2>
             <span className="text-blue-200 text-xs font-medium">Jul 2025</span>
@@ -85,7 +99,10 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
           {/* Saldo total em destaque */}
           <div className="mb-5">
             <p className="text-blue-200 text-xs mb-1">Saldo atual</p>
-            <p className="text-white text-3xl font-bold" style={{ fontFamily: "DM Mono, monospace" }}>
+            <p
+              className="text-white text-3xl font-bold"
+              style={{ fontFamily: "DM Mono, monospace" }}
+            >
               {formatCurrency(balance)}
             </p>
           </div>
@@ -93,12 +110,26 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
           {/* Mini cards: receitas / despesas / investido */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "Receitas", value: income.reduce((sum, item) => sum + item.amount, 0), color: "#4ade80" },
-              { label: "Despesas", value: expenses.reduce((sum, item) => sum + item.amount, 0), color: "#fca5a5" },
-              { label: "Investido", value: financialSummary.totalInvested, color: "#c4b5fd" },
+              {
+                label: "Receitas",
+                value: income.reduce((sum, item) => sum + item.amount, 0),
+                color: "#4ade80",
+              },
+              {
+                label: "Despesas",
+                value: expenses.reduce((sum, item) => sum + item.amount, 0),
+                color: "#fca5a5",
+              },
+              {
+                label: "Investido",
+                value: financialSummary.totalInvested,
+                color: "#c4b5fd",
+              },
             ].map((s) => (
               <div key={s.label} className="bg-white/10 rounded-xl p-2.5">
-                <p className="text-white/60 text-[9px] font-medium">{s.label}</p>
+                <p className="text-white/60 text-[9px] font-medium">
+                  {s.label}
+                </p>
                 <p
                   className="font-bold text-xs mt-0.5"
                   style={{ color: s.color, fontFamily: "DM Mono, monospace" }}
@@ -112,7 +143,6 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
 
         {/* ── Conteúdo principal ── */}
         <div className="px-4 pt-4 space-y-4">
-
           {/* Filtro de período — chips horizontais */}
           <div className="flex gap-2">
             {periods.map((p) => (
@@ -133,7 +163,10 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
           {/* Gráfico de barras: receitas × despesas por mês */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: "Outfit, sans-serif" }}>
+              <h3
+                className="text-sm font-bold text-slate-900"
+                style={{ fontFamily: "Outfit, sans-serif" }}
+              >
                 Receitas vs Despesas
               </h3>
             </div>
@@ -149,17 +182,26 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{cat.icon}</span>
-                      <span className="text-xs text-slate-700 font-medium">{cat.name}</span>
+                      <span className="text-xs text-slate-700 font-medium">
+                        {cat.name}
+                      </span>
                     </div>
                     <div className="text-right">
                       <span className="text-xs font-semibold text-slate-700 font-mono-data">
                         {formatCurrency(cat.amount)}
                       </span>
-                      <span className="text-[10px] text-slate-400 ml-1">{cat.percentage}%</span>
+                      <span className="text-[10px] text-slate-400 ml-1">
+                        {cat.percentage}%
+                      </span>
                     </div>
                   </div>
                   {/* Barra proporcional: value = porcentagem da categoria, max = 100 */}
-                  <ProgressBar value={cat.percentage} max={100} color={cat.color} height={5} />
+                  <ProgressBar
+                    value={cat.percentage}
+                    max={100}
+                    color={cat.color}
+                    height={5}
+                  />
                 </div>
               ))}
             </div>
@@ -198,18 +240,25 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
 
                         {/* Nome e categoria */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-800 truncate">{t.title}</p>
-                          <p className="text-[10px] text-slate-400">{t.category}</p>
+                          <p className="text-xs font-semibold text-slate-800 truncate">
+                            {t.title}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {t.category}
+                          </p>
                         </div>
 
                         {/* Valor com cor diferente para receita (verde) e despesa (cinza) */}
                         <div className="flex items-center gap-1">
                           <span
                             className={`text-sm font-bold font-mono-data ${
-                              t.type === "income" ? "text-green-600" : "text-slate-700"
+                              t.type === "income"
+                                ? "text-green-600"
+                                : "text-slate-700"
                             }`}
                           >
-                            {t.type === "income" ? "+" : "-"}{formatCurrency(t.amount)}
+                            {t.type === "income" ? "+" : "-"}
+                            {formatCurrency(t.amount)}
                           </span>
                           <ArrowUpRight size={12} className="text-slate-300" />
                         </div>

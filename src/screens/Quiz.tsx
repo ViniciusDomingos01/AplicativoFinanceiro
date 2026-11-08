@@ -26,17 +26,19 @@ import { useState } from "react"
 import { ArrowLeft, CheckCircle, XCircle, ChevronRight } from "lucide-react"
 import { quizQuestions } from "../data/mockData"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface QuizProps {
   /** Função de navegação global — usada para voltar ou avançar */
-  navigate: (screen: string) => void
+  navigate: NavigateToScreen
 }
 
 export default function Quiz({ navigate }: QuizProps) {
-  const [current, setCurrent] = useState(0)          // índice da questão atual
+  const [current, setCurrent] = useState(0) // índice da questão atual
   const [selected, setSelected] = useState<number | null>(null) // alternativa selecionada
-  const [answered, setAnswered] = useState(false)    // se a resposta foi confirmada
-  const [score, setScore] = useState(0)              // total de acertos
-  const [finished, setFinished] = useState(false)    // se o quiz foi concluído
+  const [answered, setAnswered] = useState(false) // se a resposta foi confirmada
+  const [score, setScore] = useState(0) // total de acertos
+  const [finished, setFinished] = useState(false) // se o quiz foi concluído
 
   const question = quizQuestions[current]
   const total = quizQuestions.length
@@ -53,8 +55,8 @@ export default function Quiz({ navigate }: QuizProps) {
   function next() {
     if (current < total - 1) {
       setCurrent((c) => c + 1)
-      setSelected(null)   // limpa seleção para a nova questão
-      setAnswered(false)  // reseta estado de resposta confirmada
+      setSelected(null) // limpa seleção para a nova questão
+      setAnswered(false) // reseta estado de resposta confirmada
     } else {
       setFinished(true)
     }
@@ -83,8 +85,8 @@ export default function Quiz({ navigate }: QuizProps) {
           {passed ? "Parabéns!" : "Continue praticando!"}
         </h2>
         <p className="text-slate-500 text-sm mb-2">
-          Você acertou <span className="font-bold text-slate-900">{score}</span> de{" "}
-          <span className="font-bold text-slate-900">{total}</span> questões
+          Você acertou <span className="font-bold text-slate-900">{score}</span>{" "}
+          de <span className="font-bold text-slate-900">{total}</span> questões
         </p>
 
         {/* Percentual em destaque com cor por aprovação */}
@@ -125,7 +127,6 @@ export default function Quiz({ navigate }: QuizProps) {
   // ── Tela de questão ──
   return (
     <div className="flex flex-col h-full bg-slate-50">
-
       {/* ── Cabeçalho com contador e barras de progresso ── */}
       <div className="px-5 pt-14 pb-4 bg-white border-b border-slate-100">
         <div className="flex items-center gap-3 mb-4">
@@ -152,10 +153,10 @@ export default function Quiz({ navigate }: QuizProps) {
                   style={{
                     backgroundColor:
                       i < current
-                        ? "#16a34a"      // respondida anteriormente
+                        ? "#16a34a" // respondida anteriormente
                         : i === current
-                        ? "#7c3aed"      // questão atual
-                        : "#e2e8f0",     // ainda não chegou
+                          ? "#7c3aed" // questão atual
+                          : "#e2e8f0", // ainda não chegou
                   }}
                 />
               ))}
@@ -166,7 +167,6 @@ export default function Quiz({ navigate }: QuizProps) {
 
       {/* ── Área da questão e alternativas ── */}
       <div className="flex-1 phone-scroll overflow-y-auto px-5 py-6">
-
         {/* Card com o enunciado da questão */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-5">
           <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-xl mb-3">
@@ -202,7 +202,10 @@ export default function Quiz({ navigate }: QuizProps) {
             return (
               <button
                 key={i}
-                onClick={() => !answered && setSelected(i)} // bloqueado após confirmar
+                onClick={() =>
+                  !answered && setSelected(i)
+                // bloqueado após confirmar
+                }
                 className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${style}`}
               >
                 {/* Círculo com letra da alternativa (A, B, C, D) */}
@@ -211,10 +214,10 @@ export default function Quiz({ navigate }: QuizProps) {
                     selected === i && !answered
                       ? "bg-violet-600 text-white"
                       : answered && i === question.correct
-                      ? "bg-green-500 text-white"
-                      : answered && i === selected
-                      ? "bg-red-400 text-white"
-                      : "bg-slate-100 text-slate-500"
+                        ? "bg-green-500 text-white"
+                        : answered && i === selected
+                          ? "bg-red-400 text-white"
+                          : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   {String.fromCharCode(65 + i)} {/* A=65, B=66, C=67, D=68 */}
@@ -223,10 +226,16 @@ export default function Quiz({ navigate }: QuizProps) {
 
                 {/* Ícone de feedback após confirmar */}
                 {answered && i === question.correct && (
-                  <CheckCircle size={16} className="text-green-500 ml-auto flex-shrink-0" />
+                  <CheckCircle
+                    size={16}
+                    className="text-green-500 ml-auto flex-shrink-0"
+                  />
                 )}
                 {answered && i === selected && i !== question.correct && (
-                  <XCircle size={16} className="text-red-400 ml-auto flex-shrink-0" />
+                  <XCircle
+                    size={16}
+                    className="text-red-400 ml-auto flex-shrink-0"
+                  />
                 )}
               </button>
             )

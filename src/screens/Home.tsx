@@ -25,18 +25,17 @@ import {
   Target,
   BookOpen,
 } from "lucide-react"
-import {
-  monthlyData,
-  courses,
-} from "../data/mockData"
+import { monthlyData, courses } from "../data/mockData"
 import { BalanceAreaChart } from "../components/Charts"
 import { Card, ProgressBar, formatCurrency } from "../components/UI"
 import type { UserProfile } from "../data/mockData"
 import type { FinanceWorkspace } from "./FinanceSetup"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface HomeProps {
   /** Função de navegação global recebida do App.tsx */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
   user: UserProfile
   workspace: FinanceWorkspace
 }
@@ -57,11 +56,13 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
 
   return (
     <div className="phone-scroll flex-1 overflow-y-auto bg-slate-50 pb-24">
-
       {/* ── Header com gradiente verde ── */}
       <div
         className="px-5 pt-14 pb-20 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #15803d 0%, #059669 50%, #0d9488 100%)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, #15803d 0%, #059669 50%, #0d9488 100%)",
+        }}
       >
         {/* Círculos decorativos de fundo (puramente visuais) */}
         <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white opacity-5" />
@@ -72,7 +73,10 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
           <div>
             <p className="text-green-200 text-xs font-medium">Bom dia 👋</p>
             {/* Exibe apenas o primeiro nome do usuário */}
-            <h2 className="text-white text-lg font-bold" style={{ fontFamily: "Outfit, sans-serif" }}>
+            <h2
+              className="text-white text-lg font-bold"
+              style={{ fontFamily: "Outfit, sans-serif" }}
+            >
               {user.name.split(" ")[0]}
             </h2>
           </div>
@@ -84,7 +88,9 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
             </button>
             {/* Avatar com as iniciais do usuário */}
             <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center">
-              <span className="text-green-900 font-bold text-xs">{user.avatar}</span>
+              <span className="text-green-900 font-bold text-xs">
+                {user.avatar}
+              </span>
             </div>
           </div>
         </div>
@@ -112,7 +118,6 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
 
       {/* ── Conteúdo scrollável ── */}
       <div className="px-4 -mt-4 space-y-4">
-
         {/* Cards de resumo mensal: receitas / despesas / investido */}
         <div className="grid grid-cols-3 gap-2.5">
           {[
@@ -143,10 +148,14 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
           ].map((stat) => (
             <Card key={stat.label} className="p-3">
               {/* Ícone com cor temática */}
-              <div className={`w-7 h-7 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center mb-2`}>
+              <div
+                className={`w-7 h-7 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center mb-2`}
+              >
                 {stat.icon}
               </div>
-              <p className="text-[9px] text-slate-400 font-medium">{stat.label}</p>
+              <p className="text-[9px] text-slate-400 font-medium">
+                {stat.label}
+              </p>
               {/* Valor numérico usa fonte monospace para alinhamento */}
               <p className="text-xs font-bold text-slate-900 font-mono-data mt-0.5 leading-none">
                 {stat.value}
@@ -158,11 +167,17 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
         {/* ── Card de categorias de gasto ── */}
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: "Outfit, sans-serif" }}>
+            <h3
+              className="text-sm font-bold text-slate-900"
+              style={{ fontFamily: "Outfit, sans-serif" }}
+            >
               Gastos por categoria
             </h3>
             {/* Link para a tela completa de finanças */}
-            <button onClick={() => navigate("finances")} className="text-xs text-green-600 font-semibold">
+            <button
+              onClick={() => navigate("finances")}
+              className="text-xs text-green-600 font-semibold"
+            >
               Ver tudo
             </button>
           </div>
@@ -174,14 +189,21 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">{cat.icon}</span>
-                    <span className="text-xs text-slate-700 font-medium">{cat.name}</span>
+                    <span className="text-xs text-slate-700 font-medium">
+                      {cat.name}
+                    </span>
                   </div>
                   <span className="text-xs font-semibold text-slate-700 font-mono-data">
                     {formatCurrency(cat.amount)}
                   </span>
                 </div>
                 {/* Barra de progresso representando % do gasto total */}
-                <ProgressBar value={cat.percentage} max={100} color={cat.color} height={5} />
+                <ProgressBar
+                  value={cat.percentage}
+                  max={100}
+                  color={cat.color}
+                  height={5}
+                />
               </div>
             ))}
           </div>
@@ -190,7 +212,10 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
         {/* ── Card de meta financeira principal ── */}
         <Card className="p-4" onClick={() => navigate("goals")}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-slate-900" style={{ fontFamily: "Outfit, sans-serif" }}>
+            <h3
+              className="text-sm font-bold text-slate-900"
+              style={{ fontFamily: "Outfit, sans-serif" }}
+            >
               Meta principal
             </h3>
             {/* Seta indicando que o card é clicável */}
@@ -206,9 +231,14 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
               {mainGoal.icon}
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-800">{mainGoal.title}</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {mainGoal.title}
+              </p>
               <p className="text-xs text-slate-400">
-                Prazo: <span className="text-slate-600 font-medium">{mainGoal.deadline}</span>
+                Prazo:{" "}
+                <span className="text-slate-600 font-medium">
+                  {mainGoal.deadline}
+                </span>
               </p>
             </div>
             <div className="text-right">
@@ -220,10 +250,19 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
           </div>
 
           {/* Barra de progresso + valores mínimo/máximo */}
-          <ProgressBar value={mainGoal.current} max={mainGoal.target} color={mainGoal.color} height={8} />
+          <ProgressBar
+            value={mainGoal.current}
+            max={mainGoal.target}
+            color={mainGoal.color}
+            height={8}
+          />
           <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-slate-400 font-mono-data">{formatCurrency(mainGoal.current)}</span>
-            <span className="text-[10px] text-slate-400 font-mono-data">{formatCurrency(mainGoal.target)}</span>
+            <span className="text-[10px] text-slate-400 font-mono-data">
+              {formatCurrency(mainGoal.current)}
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono-data">
+              {formatCurrency(mainGoal.target)}
+            </span>
           </div>
         </Card>
 
@@ -249,7 +288,10 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
               <div className="flex-1 min-w-0">
                 {/* Label "Continue aprendendo" em destaque */}
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <BookOpen size={10} style={{ color: inProgressCourse.color }} />
+                  <BookOpen
+                    size={10}
+                    style={{ color: inProgressCourse.color }}
+                  />
                   <span
                     className="text-[9px] font-semibold uppercase tracking-wide"
                     style={{ color: inProgressCourse.color }}
@@ -257,19 +299,27 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
                     Continue aprendendo
                   </span>
                 </div>
-                <p className="text-xs font-bold text-slate-900 truncate">{inProgressCourse.title}</p>
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {inProgressCourse.title}
+                </p>
                 <p className="text-[10px] text-slate-400">
                   {inProgressCourse.duration} · {inProgressCourse.lessons} aulas
                 </p>
               </div>
-              <ChevronRight size={14} className="text-slate-400 flex-shrink-0" />
+              <ChevronRight
+                size={14}
+                className="text-slate-400 flex-shrink-0"
+              />
             </div>
 
             {/* Barra de progresso do curso */}
             <div className="px-4 pb-3 pt-2">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] text-slate-500">Progresso</span>
-                <span className="text-[10px] font-bold" style={{ color: inProgressCourse.color }}>
+                <span
+                  className="text-[10px] font-bold"
+                  style={{ color: inProgressCourse.color }}
+                >
                   {inProgressCourse.progress}%
                 </span>
               </div>

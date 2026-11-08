@@ -41,25 +41,35 @@ const tabs = [
 
 export default function BottomNav({ active, onChange }: BottomNavProps) {
   return (
-    <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex z-50 pb-2">
+    <nav
+      aria-label="Navegação principal"
+      className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex z-50 pb-2"
+    >
       {tabs.map(({ id, label, Icon }) => {
         const isActive = active === id
         return (
           <button
             key={id}
+            type="button"
             onClick={() => onChange(id)}
             className="flex-1 flex flex-col items-center gap-0.5 py-2 transition-colors"
             aria-label={label}
+            aria-current={isActive ? "page" : undefined}
           >
             {/*
              * Container do ícone: recebe fundo verde suave quando ativo.
              * O strokeWidth maior na aba ativa reforça visualmente a seleção.
              */}
-            <div className={`p-1.5 rounded-xl transition-all ${isActive ? "bg-green-50" : ""}`}>
+            <div
+              className={`p-1.5 rounded-xl transition-all ${
+                isActive ? "bg-green-50" : ""
+              }`}
+            >
               <Icon
                 size={20}
                 strokeWidth={isActive ? 2.5 : 1.8}
                 className={isActive ? "text-green-600" : "text-slate-400"}
+                aria-hidden="true"
               />
             </div>
 

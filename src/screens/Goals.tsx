@@ -22,9 +22,11 @@ import { Plus, ArrowLeft } from "lucide-react"
 import { Card, ProgressBar, formatCurrency } from "../components/UI"
 import type { Goal } from "../data/mockData"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface GoalsProps {
   /** Função de navegação global recebida do App.tsx */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
   goals: Goal[]
 }
 
@@ -36,11 +38,13 @@ export default function Goals({ navigate, goals }: GoalsProps) {
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-
       {/* ── Header com gradiente violeta ── */}
       <div
         className="px-5 pt-14 pb-6 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 60%, #8b5cf6 100%)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, #6d28d9 0%, #7c3aed 60%, #8b5cf6 100%)",
+        }}
       >
         {/* Círculo decorativo */}
         <div className="absolute -bottom-10 -right-10 w-44 h-44 rounded-full bg-white/5" />
@@ -66,7 +70,9 @@ export default function Goals({ navigate, goals }: GoalsProps) {
           <div className="flex items-center justify-between mb-2">
             {/* Total já economizado */}
             <div>
-              <p className="text-violet-200 text-xs font-medium">Total economizado</p>
+              <p className="text-violet-200 text-xs font-medium">
+                Total economizado
+              </p>
               <p className="text-white text-xl font-bold font-mono-data mt-0.5">
                 {formatCurrency(totalSaved)}
               </p>
@@ -80,8 +86,15 @@ export default function Goals({ navigate, goals }: GoalsProps) {
             </div>
           </div>
           {/* Barra de progresso geral — cor mais clara para contraste sobre fundo escuro */}
-          <ProgressBar value={totalSaved} max={totalTarget} color="#c4b5fd" height={8} />
-          <p className="text-violet-200 text-xs mt-1.5">{overallPct}% do total conquistado</p>
+          <ProgressBar
+            value={totalSaved}
+            max={totalTarget}
+            color="#c4b5fd"
+            height={8}
+          />
+          <p className="text-violet-200 text-xs mt-1.5">
+            {overallPct}% do total conquistado
+          </p>
         </div>
       </div>
 
@@ -113,12 +126,17 @@ export default function Goals({ navigate, goals }: GoalsProps) {
                     {/* Badge de percentual na cor da meta */}
                     <span
                       className="text-xs font-bold flex-shrink-0 px-2 py-0.5 rounded-full"
-                      style={{ color: goal.color, backgroundColor: goal.color + "18" }}
+                      style={{
+                        color: goal.color,
+                        backgroundColor: goal.color + "18",
+                      }}
                     >
                       {pct}%
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Prazo: {goal.deadline}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Prazo: {goal.deadline}
+                  </p>
                 </div>
               </div>
 
@@ -134,13 +152,17 @@ export default function Goals({ navigate, goals }: GoalsProps) {
               {/* Linha de valores: acumulado / faltam / objetivo */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] text-slate-400 font-medium">Acumulado</p>
+                  <p className="text-[9px] text-slate-400 font-medium">
+                    Acumulado
+                  </p>
                   <p className="text-xs font-bold text-slate-800 font-mono-data">
                     {formatCurrency(goal.current)}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[9px] text-slate-400 font-medium">Faltam</p>
+                  <p className="text-[9px] text-slate-400 font-medium">
+                    Faltam
+                  </p>
                   {/* Valor restante na cor da meta para destaque positivo */}
                   <p
                     className="text-xs font-bold font-mono-data"
@@ -150,7 +172,9 @@ export default function Goals({ navigate, goals }: GoalsProps) {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[9px] text-slate-400 font-medium">Objetivo</p>
+                  <p className="text-[9px] text-slate-400 font-medium">
+                    Objetivo
+                  </p>
                   <p className="text-xs font-bold text-slate-800 font-mono-data">
                     {formatCurrency(goal.target)}
                   </p>

@@ -23,9 +23,11 @@ import { courses, learnCategories, articles } from "../data/mockData"
 import { Card, ProgressBar } from "../components/UI"
 import type { Course } from "../data/mockData"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface LearnProps {
   /** Função de navegação global recebida do App.tsx */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
 }
 
 export default function Learn({ navigate }: LearnProps) {
@@ -43,11 +45,13 @@ export default function Learn({ navigate }: LearnProps) {
 
   return (
     <div className="phone-scroll flex-1 overflow-y-auto bg-slate-50 pb-24">
-
       {/* ── Header com gradiente violeta + busca ── */}
       <div
         className="px-5 pt-14 pb-6"
-        style={{ background: "linear-gradient(135deg, #6d28d9 0%, #7c3aed 60%, #4f46e5 100%)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, #6d28d9 0%, #7c3aed 60%, #4f46e5 100%)",
+        }}
       >
         <h2
           className="text-white text-xl font-bold mb-1"
@@ -55,11 +59,16 @@ export default function Learn({ navigate }: LearnProps) {
         >
           Aprender
         </h2>
-        <p className="text-violet-200 text-xs mb-4">Sua jornada de educação financeira</p>
+        <p className="text-violet-200 text-xs mb-4">
+          Sua jornada de educação financeira
+        </p>
 
         {/* Campo de busca — futuramente conectado a filtro de resultados */}
         <div className="relative">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search
+            size={15}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
           <input
             placeholder="Buscar cursos, aulas..."
             className="w-full bg-white rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
@@ -68,7 +77,6 @@ export default function Learn({ navigate }: LearnProps) {
       </div>
 
       <div className="px-4 pt-4 space-y-5">
-
         {/*
          * Filtro de categorias em scroll horizontal.
          * `scrollbar-hide` remove a barra de scroll nativa mantendo a rolagem.
@@ -97,11 +105,16 @@ export default function Learn({ navigate }: LearnProps) {
         {/* ── Card de curso em destaque (featured) ── */}
         <div
           className="rounded-2xl overflow-hidden relative p-5"
-          style={{ background: "linear-gradient(135deg, #1e40af, #4f46e5 70%, #6d28d9)" }}
+          style={{
+            background:
+              "linear-gradient(135deg, #1e40af, #4f46e5 70%, #6d28d9)",
+          }}
         >
           {/* Elementos decorativos */}
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/5" />
-          <div className="absolute bottom-0 right-0 text-7xl opacity-20 select-none">📊</div>
+          <div className="absolute bottom-0 right-0 text-7xl opacity-20 select-none">
+            📊
+          </div>
 
           {/* Badge "Destaque" */}
           <span className="inline-flex items-center gap-1 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full mb-3">
@@ -113,7 +126,9 @@ export default function Learn({ navigate }: LearnProps) {
           >
             Introdução aos Investimentos
           </h3>
-          <p className="text-blue-200 text-xs mb-4">Gratuito · 14 aulas · 3h 15min</p>
+          <p className="text-blue-200 text-xs mb-4">
+            Gratuito · 14 aulas · 3h 15min
+          </p>
 
           {/* CTA — navega para detalhe do curso gratuito (índice 1) */}
           <button
@@ -190,11 +205,18 @@ export default function Learn({ navigate }: LearnProps) {
                   </p>
                   {/* Rating + duração */}
                   <div className="flex items-center gap-1 mt-1.5">
-                    <Star size={9} className="text-yellow-400 fill-yellow-400" />
-                    <span className="text-[9px] text-slate-500 font-medium">{course.rating}</span>
+                    <Star
+                      size={9}
+                      className="text-yellow-400 fill-yellow-400"
+                    />
+                    <span className="text-[9px] text-slate-500 font-medium">
+                      {course.rating}
+                    </span>
                     <span className="text-slate-200 text-[9px]">·</span>
                     <Clock size={9} className="text-slate-400" />
-                    <span className="text-[9px] text-slate-500">{course.duration}</span>
+                    <span className="text-[9px] text-slate-500">
+                      {course.duration}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -236,7 +258,10 @@ export default function Learn({ navigate }: LearnProps) {
           </div>
           <div className="space-y-2.5">
             {articles.map((article) => (
-              <Card key={article.id} className="px-4 py-3 flex items-center gap-3">
+              <Card
+                key={article.id}
+                className="px-4 py-3 flex items-center gap-3"
+              >
                 {/* Ícone do artigo */}
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
@@ -250,14 +275,22 @@ export default function Learn({ navigate }: LearnProps) {
                   </p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Clock size={9} className="text-slate-400" />
-                    <span className="text-[10px] text-slate-400">{article.readTime} de leitura</span>
+                    <span className="text-[10px] text-slate-400">
+                      {article.readTime} de leitura
+                    </span>
                     <span className="text-[10px] text-slate-300">·</span>
-                    <span className="text-[10px]" style={{ color: article.color }}>
+                    <span
+                      className="text-[10px]"
+                      style={{ color: article.color }}
+                    >
                       {article.category}
                     </span>
                   </div>
                 </div>
-                <ChevronRight size={14} className="text-slate-300 flex-shrink-0" />
+                <ChevronRight
+                  size={14}
+                  className="text-slate-300 flex-shrink-0"
+                />
               </Card>
             ))}
           </div>
@@ -297,13 +330,18 @@ function CourseCard({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-bold text-slate-900 leading-tight truncate">{course.title}</p>
+        <p className="text-xs font-bold text-slate-900 leading-tight truncate">
+          {course.title}
+        </p>
 
         {/* Metadados: nível + duração + rating */}
         <div className="flex items-center gap-1.5 mt-0.5">
           <span
             className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-            style={{ color: course.color, backgroundColor: course.color + "15" }}
+            style={{
+              color: course.color,
+              backgroundColor: course.color + "15",
+            }}
           >
             {course.level}
           </span>
@@ -318,7 +356,12 @@ function CourseCard({
         {/* Barra de progresso — exibida apenas em "Em andamento" */}
         {showProgress && course.progress !== undefined && (
           <div className="mt-1.5">
-            <ProgressBar value={course.progress} max={100} color={course.color} height={4} />
+            <ProgressBar
+              value={course.progress}
+              max={100}
+              color={course.color}
+              height={4}
+            />
           </div>
         )}
       </div>
@@ -333,7 +376,10 @@ function CourseCard({
           <ChevronRight size={14} className="text-slate-300" />
         )}
         {showProgress && course.progress !== undefined && (
-          <span className="text-[10px] font-bold" style={{ color: course.color }}>
+          <span
+            className="text-[10px] font-bold"
+            style={{ color: course.color }}
+          >
             {course.progress}%
           </span>
         )}

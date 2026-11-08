@@ -31,11 +31,13 @@ import { courseModules } from "../data/mockData"
 import { ProgressBar } from "../components/UI"
 import type { Lesson as LessonType } from "../data/mockData"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface LessonProps {
   /** Aula atual (recebida via App.tsx → navigate) */
   lesson: LessonType
   /** Função de navegação global */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
 }
 
 /**
@@ -43,10 +45,12 @@ interface LessonProps {
  * Em produção, este dado viria de um backend.
  * Fallback é aplicado para aulas sem conteúdo definido aqui.
  */
-const lessonContent: Record<
-  string,
-  { title: string; description: string; points: string[]; videoUrl?: string }
-> = {
+const lessonContent: Record<string, {
+  title: string
+  description: string
+  points: string[]
+  videoUrl?: string
+}> = {
   l4: {
     title: "A Regra 50/30/20",
     description:
@@ -95,7 +99,6 @@ export default function Lesson({ lesson, navigate }: LessonProps) {
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-
       {/* ── Barra superior: voltar + progresso ── */}
       <div className="flex items-center gap-3 px-4 pt-14 pb-4 bg-slate-900">
         <button
@@ -115,7 +118,6 @@ export default function Lesson({ lesson, navigate }: LessonProps) {
 
       <div className="flex-1 phone-scroll overflow-y-auto bg-white rounded-t-3xl -mt-1">
         <div className="px-5 py-5">
-
           {/* Indicador de módulo e número da aula */}
           <div className="flex items-center gap-2 mb-3">
             <BookOpen size={14} className="text-violet-500" />
@@ -130,7 +132,9 @@ export default function Lesson({ lesson, navigate }: LessonProps) {
           >
             {content.title}
           </h2>
-          <p className="text-sm text-slate-500 leading-relaxed mb-5">{content.description}</p>
+          <p className="text-sm text-slate-500 leading-relaxed mb-5">
+            {content.description}
+          </p>
 
           {content.videoUrl && (
             <a
@@ -140,12 +144,17 @@ export default function Lesson({ lesson, navigate }: LessonProps) {
               className="flex items-center justify-between gap-3 rounded-2xl border border-violet-100 bg-violet-50 p-3.5 mb-5"
             >
               <div>
-                <p className="text-xs font-bold text-violet-800">Vídeo complementar</p>
+                <p className="text-xs font-bold text-violet-800">
+                  Vídeo complementar
+                </p>
                 <p className="text-[10px] text-violet-500 mt-0.5">
                   Link de referência — gravação própria em breve
                 </p>
               </div>
-              <ExternalLink size={16} className="text-violet-600 flex-shrink-0" />
+              <ExternalLink
+                size={16}
+                className="text-violet-600 flex-shrink-0"
+              />
             </a>
           )}
 
@@ -161,9 +170,13 @@ export default function Lesson({ lesson, navigate }: LessonProps) {
               <div key={i} className="flex items-start gap-2.5">
                 {/* Número do ponto em círculo verde */}
                 <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-green-600 text-[10px] font-bold">{i + 1}</span>
+                  <span className="text-green-600 text-[10px] font-bold">
+                    {i + 1}
+                  </span>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{point}</p>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {point}
+                </p>
               </div>
             ))}
           </div>
@@ -185,8 +198,12 @@ export default function Lesson({ lesson, navigate }: LessonProps) {
                   <BookOpen size={14} className="text-violet-600" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-xs font-semibold text-slate-800">{nextLesson.title}</p>
-                  <p className="text-[10px] text-slate-400">{nextLesson.duration}</p>
+                  <p className="text-xs font-semibold text-slate-800">
+                    {nextLesson.title}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    {nextLesson.duration}
+                  </p>
                 </div>
                 <ChevronRight size={14} className="text-slate-400" />
               </button>

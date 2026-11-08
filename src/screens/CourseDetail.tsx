@@ -35,11 +35,13 @@ import { courseModules } from "../data/mockData"
 import { ProgressBar } from "../components/UI"
 import type { Course, Lesson } from "../data/mockData"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface CourseDetailProps {
   /** Curso selecionado na tela Aprender (recebido via App.tsx → navigate) */
   course: Course
   /** Função de navegação global */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
 }
 
 export default function CourseDetail({ course, navigate }: CourseDetailProps) {
@@ -58,7 +60,8 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
         </div>
       )
     }
-    if (type === "quiz") return <HelpCircle size={12} className="text-violet-400" />
+    if (type === "quiz")
+      return <HelpCircle size={12} className="text-violet-400" />
     return <FileText size={12} className="text-blue-400" />
   }
 
@@ -66,21 +69,24 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
   const totalLessons = courseModules.reduce((s, m) => s + m.lessons.length, 0)
   const completedLessons = courseModules.reduce(
     (s, m) => s + m.lessons.filter((l) => l.completed).length,
-    0
+    0,
   )
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-
       {/* ── Hero do curso com gradiente temático ── */}
       <div
         className="relative px-5 pt-14 pb-6 overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${course.color}dd, ${course.color}99)` }}
+        style={{
+          background: `linear-gradient(135deg, ${course.color}dd, ${course.color}99)`,
+        }}
       >
         {/* Decorações de fundo */}
         <div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-white/5" />
         {/* Emoji grande decorativo semitransparente */}
-        <div className="absolute top-8 right-8 text-7xl opacity-20 select-none">{course.emoji}</div>
+        <div className="absolute top-8 right-8 text-7xl opacity-20 select-none">
+          {course.emoji}
+        </div>
 
         {/* Botão voltar para a tela Aprender */}
         <button
@@ -100,22 +106,32 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
         >
           {course.title}
         </h2>
-        <p className="text-white/70 text-xs leading-relaxed mb-4">{course.description}</p>
+        <p className="text-white/70 text-xs leading-relaxed mb-4">
+          {course.description}
+        </p>
 
         {/* Linha de metadados: rating, duração, alunos, nível, gratuito */}
         <div className="flex items-center gap-3 flex-wrap mb-4">
           {[
             {
-              icon: <Star size={11} className="fill-yellow-300 text-yellow-300" />,
+              icon: (
+                <Star size={11} className="fill-yellow-300 text-yellow-300" />
+              ),
               label: `${course.rating}`,
             },
-            { icon: <Clock size={11} className="text-white/70" />, label: course.duration },
+            {
+              icon: <Clock size={11} className="text-white/70" />,
+              label: course.duration,
+            },
             {
               icon: <Users size={11} className="text-white/70" />,
               label: `${(course.students / 1000).toFixed(1)}k alunos`,
             },
           ].map((m, i) => (
-            <span key={i} className="flex items-center gap-1 text-xs text-white/80 font-medium">
+            <span
+              key={i}
+              className="flex items-center gap-1 text-xs text-white/80 font-medium"
+            >
               {m.icon}
               {m.label}
             </span>
@@ -145,7 +161,12 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
               </span>
             </div>
             {/* Cor branca na barra para contraste sobre fundo colorido */}
-            <ProgressBar value={course.progress} max={100} color="white" height={6} />
+            <ProgressBar
+              value={course.progress}
+              max={100}
+              color="white"
+              height={6}
+            />
           </div>
         )}
       </div>
@@ -181,7 +202,9 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
                   {/* Ícone rotaciona ao expandir */}
                   <ChevronDown
                     size={16}
-                    className={`text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                    className={`text-slate-400 transition-transform ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
 
@@ -211,11 +234,16 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
                           >
                             {lesson.title}
                           </p>
-                          <p className="text-[9px] text-slate-400 mt-0.5">{lesson.duration}</p>
+                          <p className="text-[9px] text-slate-400 mt-0.5">
+                            {lesson.duration}
+                          </p>
                         </div>
                         {/* Seta apenas para aulas não concluídas */}
                         {!lesson.completed && (
-                          <ChevronRight size={12} className="text-slate-300 flex-shrink-0" />
+                          <ChevronRight
+                            size={12}
+                            className="text-slate-300 flex-shrink-0"
+                          />
                         )}
                       </button>
                     ))}

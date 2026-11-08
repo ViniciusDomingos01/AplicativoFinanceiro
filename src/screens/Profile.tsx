@@ -31,9 +31,11 @@ import { ProgressBar } from "../components/UI"
 import type { UserProfile } from "../data/mockData"
 import type { Goal } from "../data/mockData"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface ProfileProps {
   /** Função de navegação global recebida do App.tsx */
-  navigate: (screen: string, data?: unknown) => void
+  navigate: NavigateToScreen
   user: UserProfile
   goals: Goal[]
 }
@@ -49,11 +51,13 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
 
   return (
     <div className="phone-scroll flex-1 overflow-y-auto bg-slate-50 pb-24">
-
       {/* ── Header escuro com avatar e XP ── */}
       <div
         className="px-5 pt-14 pb-6"
-        style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)",
+        }}
       >
         {/* Título + botão de configurações */}
         <div className="flex items-center justify-between mb-5">
@@ -77,7 +81,9 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
           <div className="relative">
             {/* Avatar gerado com gradiente e iniciais do usuário */}
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
-              <span className="text-white text-xl font-bold">{user.avatar}</span>
+              <span className="text-white text-xl font-bold">
+                {user.avatar}
+              </span>
             </div>
             {/* Badge de nível em estrela sobreposto ao avatar */}
             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
@@ -103,14 +109,21 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <Award size={12} className="text-yellow-400" />
-              <span className="text-xs text-white/70 font-medium">XP de Aprendizado</span>
+              <span className="text-xs text-white/70 font-medium">
+                XP de Aprendizado
+              </span>
             </div>
             <span className="text-xs font-bold text-white font-mono-data">
               {user.xp} / {user.xpNext} XP
             </span>
           </div>
           {/* Barra amarela para contraste sobre fundo escuro */}
-          <ProgressBar value={user.xp} max={user.xpNext} color="#facc15" height={6} />
+          <ProgressBar
+            value={user.xp}
+            max={user.xpNext}
+            color="#facc15"
+            height={6}
+          />
           <p className="text-white/40 text-[10px] mt-1">
             Faltam {user.xpNext - user.xp} XP para o próximo nível
           </p>
@@ -119,13 +132,27 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
 
       {/* ── Conteúdo scrollável ── */}
       <div className="px-4 pt-4 space-y-4">
-
         {/* Cards de estatísticas de aprendizado */}
         <div className="grid grid-cols-3 gap-2.5">
           {[
-            { icon: "🎓", value: completedCourses, label: "Concluídos", color: "#16a34a" },
-            { icon: "⏱️", value: `${totalHours}h`, label: "Estudadas", color: "#2563eb" },
-            { icon: "🔥", value: streak, label: "Dias seguidos", color: "#d97706" },
+            {
+              icon: "🎓",
+              value: completedCourses,
+              label: "Concluídos",
+              color: "#16a34a",
+            },
+            {
+              icon: "⏱️",
+              value: `${totalHours}h`,
+              label: "Estudadas",
+              color: "#2563eb",
+            },
+            {
+              icon: "🔥",
+              value: streak,
+              label: "Dias seguidos",
+              color: "#d97706",
+            },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -138,7 +165,9 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
               >
                 {stat.value}
               </p>
-              <p className="text-[9px] text-slate-400 font-medium">{stat.label}</p>
+              <p className="text-[9px] text-slate-400 font-medium">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
@@ -153,7 +182,10 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
               Meus cursos
             </h4>
             {/* Atalho para a tela de aprender */}
-            <button onClick={() => navigate("learn")} className="text-xs text-green-600 font-semibold">
+            <button
+              onClick={() => navigate("learn")}
+              className="text-xs text-green-600 font-semibold"
+            >
               Ver todos
             </button>
           </div>
@@ -174,7 +206,9 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
                 {course.emoji}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-800 truncate">{course.title}</p>
+                <p className="text-xs font-semibold text-slate-800 truncate">
+                  {course.title}
+                </p>
                 {/* Barra de progresso individual */}
                 <ProgressBar
                   value={course.progress!}
@@ -204,7 +238,10 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
               Metas financeiras
             </h4>
             {/* Atalho para a tela de metas */}
-            <button onClick={() => navigate("goals")} className="text-xs text-green-600 font-semibold">
+            <button
+              onClick={() => navigate("goals")}
+              className="text-xs text-green-600 font-semibold"
+            >
               Ver todas
             </button>
           </div>
@@ -215,7 +252,9 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
             return (
               <div
                 key={goal.id}
-                className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-slate-50" : ""}`}
+                className={`flex items-center gap-3 px-4 py-3 ${
+                  i > 0 ? "border-t border-slate-50" : ""
+                }`}
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
@@ -224,7 +263,9 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
                   {goal.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-800 truncate">{goal.title}</p>
+                  <p className="text-xs font-semibold text-slate-800 truncate">
+                    {goal.title}
+                  </p>
                   <ProgressBar
                     value={goal.current}
                     max={goal.target}
@@ -288,7 +329,9 @@ export default function Profile({ navigate, user, goals }: ProfileProps) {
                 {item.label}
               </span>
               {/* Indicador de alerta (ponto vermelho) se houver algo pendente */}
-              {item.hasAlert && <span className="w-2 h-2 bg-red-400 rounded-full mr-1" />}
+              {item.hasAlert && (
+                <span className="w-2 h-2 bg-red-400 rounded-full mr-1" />
+              )}
               <ChevronRight size={14} className="text-slate-300" />
             </button>
           ))}

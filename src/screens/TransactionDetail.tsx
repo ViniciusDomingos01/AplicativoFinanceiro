@@ -32,11 +32,13 @@ import {
 import type { Transaction } from "../data/mockData"
 import { formatCurrency, formatDate } from "../components/UI"
 
+import type { NavigateToScreen } from "../app/routes"
+
 interface TransactionDetailProps {
   /** Objeto da transação selecionada (recebido via App.tsx → navigate) */
   transaction: Transaction
   /** Função de navegação global — usada para voltar à tela de finanças */
-  navigate: (screen: string) => void
+  navigate: NavigateToScreen
 }
 
 export default function TransactionDetail({
@@ -48,7 +50,6 @@ export default function TransactionDetail({
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-
       {/* ── Header com gradiente temático ── */}
       <div
         className="px-5 pt-14 pb-8 relative overflow-hidden"
@@ -105,7 +106,8 @@ export default function TransactionDetail({
                   color: isIncome ? "#86efac" : "#fca5a5",
                 }}
               >
-                {isIncome ? "+" : "-"}{formatCurrency(t.amount)}
+                {isIncome ? "+" : "-"}
+                {formatCurrency(t.amount)}
               </span>
             </div>
           </div>
@@ -114,7 +116,6 @@ export default function TransactionDetail({
 
       {/* ── Área de detalhes scrollável ── */}
       <div className="flex-1 phone-scroll overflow-y-auto px-4 py-5 space-y-3">
-
         {/* Card de campos da transação */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
           {[
@@ -145,15 +146,21 @@ export default function TransactionDetail({
           ].map((row, i) => (
             <div
               key={i}
-              className={`flex items-center gap-3 px-4 py-3.5 ${i < 3 ? "border-b border-slate-50" : ""}`}
+              className={`flex items-center gap-3 px-4 py-3.5 ${
+                i < 3 ? "border-b border-slate-50" : ""
+              }`}
             >
               {/* Ícone do campo com fundo neutro */}
               <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center flex-shrink-0">
                 {row.icon}
               </div>
               <div className="flex-1">
-                <p className="text-[10px] text-slate-400 font-medium">{row.label}</p>
-                <p className="text-sm text-slate-800 font-semibold">{row.value}</p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  {row.label}
+                </p>
+                <p className="text-sm text-slate-800 font-semibold">
+                  {row.value}
+                </p>
               </div>
             </div>
           ))}
@@ -165,7 +172,9 @@ export default function TransactionDetail({
                 <FileText size={15} className="text-slate-400" />
               </div>
               <div>
-                <p className="text-[10px] text-slate-400 font-medium">Observação</p>
+                <p className="text-[10px] text-slate-400 font-medium">
+                  Observação
+                </p>
                 <p className="text-sm text-slate-800">{t.note}</p>
               </div>
             </div>
@@ -182,10 +191,15 @@ export default function TransactionDetail({
         >
           <span className="text-2xl">{t.icon}</span>
           <div>
-            <p className="text-xs font-semibold" style={{ color: t.categoryColor }}>
+            <p
+              className="text-xs font-semibold"
+              style={{ color: t.categoryColor }}
+            >
               {t.category}
             </p>
-            <p className="text-[10px] text-slate-500">Categoria desta transação</p>
+            <p className="text-[10px] text-slate-500">
+              Categoria desta transação
+            </p>
           </div>
         </div>
       </div>
