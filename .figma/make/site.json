@@ -1,0 +1,10 @@
+{
+  "description": "Manage personal finances and enhance financial literacy with interactive courses and tools, designed for users seeking to improve their financial health.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
