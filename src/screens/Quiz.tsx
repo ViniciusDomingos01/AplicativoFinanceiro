@@ -22,23 +22,27 @@
  * O App.tsx oculta o bottom nav nesta tela.
  */
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ArrowLeft, CheckCircle, XCircle, ChevronRight } from "lucide-react"
 import { quizQuestions } from "../data/mockData"
+import type { Lesson as LessonType } from "../data/mockData"
 
 import type { NavigateToScreen } from "../app/routes"
 
 interface QuizProps {
   /** Função de navegação global — usada para voltar ou avançar */
   navigate: NavigateToScreen
+  nextLesson: LessonType | null
+  onFinish: (result: { score: number; total: number; passed: boolean }) => void
 }
 
-export default function Quiz({ navigate }: QuizProps) {
+export default function Quiz({ navigate, nextLesson, onFinish }: QuizProps) {
   const [current, setCurrent] = useState(0) // índice da questão atual
   const [selected, setSelected] = useState<number | null>(null) // alternativa selecionada
   const [answered, setAnswered] = useState(false) // se a resposta foi confirmada
   const [score, setScore] = useState(0) // total de acertos
   const [finished, setFinished] = useState(false) // se o quiz foi concluído
+  const finishNotified = useRef(false)
 
   const question = quizQuestions[current]
   const total = quizQuestions.length
@@ -58,6 +62,11 @@ export default function Quiz({ navigate }: QuizProps) {
       setSelected(null) // limpa seleção para a nova questão
       setAnswered(false) // reseta estado de resposta confirmada
     } else {
+      if (!finishNotified.current) {
+        const percentage = Math.round((score / total) * 100)
+        onFinish({ score, total, passed: percentage >= 70 })
+        finishNotified.current = true
+      }
       setFinished(true)
     }
   }
@@ -114,10 +123,14 @@ export default function Quiz({ navigate }: QuizProps) {
             Refazer quiz
           </button>
           <button
-            onClick={() => navigate("courseDetail")}
+            onClick={() =>
+              nextLesson
+                ? navigate("lesson", nextLesson)
+                : navigate("courseDetail")
+            }
             className="flex-1 py-3.5 rounded-2xl bg-green-600 text-white font-semibold text-sm active:scale-[0.98] transition-all"
           >
-            Próxima aula
+            {nextLesson ? "Próxima aula" : "Voltar ao curso"}
           </button>
         </div>
       </div>
@@ -202,10 +215,8 @@ export default function Quiz({ navigate }: QuizProps) {
             return (
               <button
                 key={i}
-                onClick={() =>
-                  !answered && setSelected(i)
+                onClick={() => !answered && setSelected(i)}
                 // bloqueado após confirmar
-                }
                 className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${style}`}
               >
                 {/* Círculo com letra da alternativa (A, B, C, D) */}

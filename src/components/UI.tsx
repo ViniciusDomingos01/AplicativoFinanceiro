@@ -17,7 +17,12 @@
  * - `formatDate`     — formata string ISO para data legível em PT-BR
  */
 
-import { ReactNode } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
+
+export const TEXT_FIELD_CLASS =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
+export const FINANCE_FIELD_CLASS =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
 
 /**
  * Card — Container de conteúdo padrão do app
@@ -29,22 +34,134 @@ export function Card({
   children,
   className = "",
   onClick,
+  /** Se fornecido, torna o card clicável com feedback visual de toque */
 }: {
   children: ReactNode
   className?: string
-  /** Se fornecido, torna o card clicável com feedback visual de toque */
   onClick?: () => void
 }) {
+  const cardClass = `bg-white rounded-2xl shadow-sm border border-slate-100 ${
+    onClick
+      ? "w-full text-left cursor-pointer active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-green-200"
+      : ""
+  } ${className}`
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cardClass}>
+        {children}
+      </button>
+    )
+  }
+
+  return <div className={cardClass}>{children}</div>
+}
+
+export function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  children: ReactNode
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onCloseRef.current()
+      if (event.key !== "Tab" || !dialogRef.current) return
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown)
+      previousFocus?.focus()
+    }
+  }, [])
+
   return (
     <div
-      onClick={onClick}
-      className={`bg-white rounded-2xl shadow-sm border border-slate-100 ${
-        onClick
-          ? "cursor-pointer active:scale-[0.98] transition-transform"
-          : ""
-      } ${className}`}
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-950/50 p-3"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
     >
-      {children}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title"
+        className="w-full max-w-sm max-h-[90%] overflow-y-auto rounded-3xl bg-white shadow-2xl"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4">
+          <h2
+            id="dialog-title"
+            className="font-display text-base font-bold text-slate-900"
+          >
+            {title}
+          </h2>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-green-200"
+            aria-label="Fechar janela"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+export function Toast({
+  message,
+  kind = "success",
+}: {
+  message: string
+  kind?: "success" | "error"
+}) {
+  if (!message) return null
+  const isError = kind === "error"
+
+  return (
+    <div
+      role={isError ? "alert" : "status"}
+      aria-live={isError ? "assertive" : "polite"}
+      className={`rounded-2xl border px-3.5 py-3 text-xs font-semibold ${
+        isError
+          ? "border-red-100 bg-red-50 text-red-700"
+          : "border-green-100 bg-green-50 text-green-700"
+      }`}
+    >
+      {message}
     </div>
   )
 }
@@ -74,10 +191,17 @@ export function ProgressBar({
   className?: string
 }) {
   // Garante que o percentual fique entre 0 e 100
-  const pct = Math.min(100, Math.round((value / max) * 100))
+  const pct =
+    max > 0 && Number.isFinite(value)
+      ? Math.min(100, Math.max(0, Math.round((value / max) * 100)))
+      : 0
 
   return (
     <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={Math.min(max, Math.max(0, value))}
       className={`bg-slate-100 rounded-full overflow-hidden ${className}`}
       style={{ height }}
     >
@@ -99,10 +223,10 @@ export function Badge({
   children,
   color = "#16a34a",
   bg,
+  /** Fundo customizado; se omitido, usa a cor principal com 10% de opacidade */
 }: {
   children: ReactNode
   color?: string
-  /** Fundo customizado; se omitido, usa a cor principal com 10% de opacidade */
   bg?: string
 }) {
   return (
@@ -128,14 +252,14 @@ export function StatCard({
   color,
   bg,
   trend,
+  /** Emoji ou string curta para o ícone */
+  /** Texto de tendência exibido como badge opcional (ex: "+5%") */
 }: {
   label: string
   value: string
-  /** Emoji ou string curta para o ícone */
   icon: string
   color: string
   bg: string
-  /** Texto de tendência exibido como badge opcional (ex: "+5%") */
   trend?: string
 }) {
   return (
@@ -155,7 +279,9 @@ export function StatCard({
       </div>
       <p className="text-[10px] text-slate-500 font-medium">{label}</p>
       {/* Valor usa fonte monospace para alinhamento numérico */}
-      <p className="text-sm font-bold text-slate-900 mt-0.5 font-mono-data">{value}</p>
+      <p className="text-sm font-bold text-slate-900 mt-0.5 font-mono-data">
+        {value}
+      </p>
     </div>
   )
 }
@@ -170,9 +296,9 @@ export function SectionHeader({
   title,
   action,
   onAction,
+  /** Texto do link de ação (ex: "Ver tudo", "Ver todas") */
 }: {
   title: string
-  /** Texto do link de ação (ex: "Ver tudo", "Ver todas") */
   action?: string
   onAction?: () => void
 }) {
@@ -185,7 +311,12 @@ export function SectionHeader({
         {title}
       </h3>
       {action && (
-        <button onClick={onAction} className="text-xs text-green-600 font-semibold">
+        <button
+          type="button"
+          onClick={onAction}
+          disabled={!onAction}
+          className="text-xs text-green-600 font-semibold disabled:cursor-default"
+        >
           {action}
         </button>
       )}
@@ -204,11 +335,11 @@ export function PrimaryButton({
   onClick,
   className = "",
   color = "#16a34a",
+  /** Cor de fundo do botão (padrão: verde primário) */
 }: {
   children: ReactNode
   onClick?: () => void
   className?: string
-  /** Cor de fundo do botão (padrão: verde primário) */
   color?: string
 }) {
   return (
@@ -236,6 +367,15 @@ export function formatCurrency(value: number) {
     style: "currency",
     currency: "BRL",
   }).format(Math.abs(value))
+}
+
+export function parseNumericInput(value: string) {
+  const trimmed = value.trim().replace(/\s|R\$/g, "")
+  if (!trimmed) return Number.NaN
+  const normalized = trimmed.includes(",")
+    ? trimmed.replace(/\./g, "").replace(",", ".")
+    : trimmed
+  return Number(normalized)
 }
 
 /**

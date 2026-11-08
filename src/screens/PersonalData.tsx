@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { ArrowLeft, Check, Target, UserRound } from "lucide-react"
+import { parseNumericInput, TEXT_FIELD_CLASS, Toast } from "../components/UI"
 import type { UserProfile } from "../data/mockData"
 
 interface PersonalDataProps {
@@ -33,6 +34,7 @@ export default function PersonalData({
   onSave,
 }: PersonalDataProps) {
   const [form, setForm] = useState(user)
+  const [error, setError] = useState("")
 
   function update(field: keyof UserProfile, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -40,11 +42,16 @@ export default function PersonalData({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (form.monthlyIncome.trim()) {
+      const income = parseNumericInput(form.monthlyIncome)
+      if (!Number.isFinite(income) || income < 0) {
+        setError("Informe uma renda mensal válida ou deixe o campo vazio.")
+        return
+      }
+    }
+    setError("")
     onSave({ ...form, avatar: initials(form.name) || "FE" })
   }
-
-  const fieldClass =
-    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-green-500 focus:ring-4 focus:ring-green-100"
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -65,67 +72,91 @@ export default function PersonalData({
               {isFirstAccess ? "Só mais um passo" : "Sua conta"}
             </p>
             <h2 className="font-display text-xl font-bold">
-              {isFirstAccess ? "Vamos personalizar o FinEduca" : "Dados pessoais"}
+              {isFirstAccess
+                ? "Vamos personalizar o FinEduca"
+                : "Dados pessoais"}
             </h2>
           </div>
         </div>
         <p className="text-sm text-white/75 leading-relaxed">
-          Essas informações ajudam a adaptar os conteúdos e o planejamento financeiro ao seu momento.
+          Essas informações ajudam a adaptar os conteúdos e o planejamento
+          financeiro ao seu momento.
         </p>
       </div>
 
-      <form onSubmit={submit} className="phone-scroll flex-1 overflow-y-auto px-4 py-5 pb-8">
+      <form
+        onSubmit={submit}
+        className="phone-scroll flex-1 overflow-y-auto px-4 py-5 pb-8"
+      >
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 space-y-4">
           <div className="flex items-center gap-2 pb-1">
             <div className="w-9 h-9 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
               <UserRound size={17} />
             </div>
             <div>
-              <h3 className="font-display text-sm font-bold text-slate-900">Sobre você</h3>
-              <p className="text-[10px] text-slate-400">Você poderá editar estes dados depois.</p>
+              <h3 className="font-display text-sm font-bold text-slate-900">
+                Sobre você
+              </h3>
+              <p className="text-[10px] text-slate-400">
+                Você poderá editar estes dados depois.
+              </p>
             </div>
           </div>
 
           <label className="block">
-            <span className="block text-xs font-semibold text-slate-600 mb-1.5">Nome completo</span>
+            <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+              Nome completo
+            </span>
             <input
+              aria-label="Nome completo"
               required
               value={form.name}
               onChange={(event) => update("name", event.target.value)}
-              className={fieldClass}
+              className={TEXT_FIELD_CLASS}
               placeholder="Como podemos chamar você?"
             />
           </label>
 
           <label className="block">
-            <span className="block text-xs font-semibold text-slate-600 mb-1.5">E-mail</span>
+            <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+              E-mail
+            </span>
             <input
+              aria-label="E-mail"
               required
               type="email"
               value={form.email}
               onChange={(event) => update("email", event.target.value)}
-              className={fieldClass}
+              className={TEXT_FIELD_CLASS}
               placeholder="voce@email.com"
             />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs font-semibold text-slate-600 mb-1.5">Telefone</span>
+              <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Telefone
+              </span>
               <input
+                aria-label="Telefone"
                 value={form.phone}
                 onChange={(event) => update("phone", event.target.value)}
-                className={fieldClass}
+                className={TEXT_FIELD_CLASS}
                 placeholder="(00) 00000-0000"
               />
             </label>
             <label className="block">
-              <span className="block text-xs font-semibold text-slate-600 mb-1.5">Renda mensal</span>
+              <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Renda mensal
+              </span>
               <input
+                aria-label="Renda mensal em reais"
                 inputMode="decimal"
                 value={form.monthlyIncome}
-                onChange={(event) => update("monthlyIncome", event.target.value)}
-                className={fieldClass}
+                onChange={(event) =>
+                  update("monthlyIncome", event.target.value)
+                }
+                className={TEXT_FIELD_CLASS}
                 placeholder="R$ 0,00"
               />
             </label>
@@ -138,8 +169,12 @@ export default function PersonalData({
               <Target size={17} />
             </div>
             <div>
-              <h3 className="font-display text-sm font-bold text-slate-900">Objetivo principal</h3>
-              <p className="text-[10px] text-slate-400">Escolha o foco da sua jornada.</p>
+              <h3 className="font-display text-sm font-bold text-slate-900">
+                Objetivo principal
+              </h3>
+              <p className="text-[10px] text-slate-400">
+                Escolha o foco da sua jornada.
+              </p>
             </div>
           </div>
           <div className="space-y-2">
@@ -159,7 +194,9 @@ export default function PersonalData({
                   {goal}
                   <span
                     className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                      selected ? "bg-green-600 text-white" : "border border-slate-200"
+                      selected
+                        ? "bg-green-600 text-white"
+                        : "border border-slate-200"
                     }`}
                   >
                     {selected && <Check size={12} />}
@@ -176,8 +213,14 @@ export default function PersonalData({
         >
           {isFirstAccess ? "Criar meu perfil" : "Salvar alterações"}
         </button>
+        {error && (
+          <div className="mt-3">
+            <Toast message={error} kind="error" />
+          </div>
+        )}
         <p className="text-center text-[10px] text-slate-400 mt-3 px-4">
-          Seus dados são usados apenas para personalizar sua experiência neste protótipo.
+          Seus dados são usados apenas para personalizar sua experiência neste
+          protótipo.
         </p>
       </form>
     </div>

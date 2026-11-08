@@ -28,7 +28,7 @@ export default function AppShell({
   const lightStatus = LIGHT_STATUS_SCREENS.includes(screen)
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 p-4">
+    <div className="app-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 p-4">
       <div className="fixed top-6 left-1/2 -translate-x-1/2 hidden md:flex items-center gap-2 z-0">
         <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
         <span className="text-white/30 text-xs font-medium tracking-widest uppercase">
@@ -36,18 +36,7 @@ export default function AppShell({
         </span>
       </div>
 
-      <div
-        className="relative flex flex-col overflow-hidden"
-        style={{
-          width: 390,
-          height: 844,
-          background: "#ffffff",
-          borderRadius: 52,
-          border: "10px solid #1e293b",
-          boxShadow:
-            "0 0 0 1px #334155, 0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.08)",
-        }}
-      >
+      <div className="app-phone-frame relative flex flex-col overflow-hidden">
         {screen !== "onboarding" && (
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-7 bg-slate-950 rounded-b-2xl z-50 flex items-center justify-center gap-2"

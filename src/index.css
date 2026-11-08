@@ -64,3 +64,32 @@ body {
 .phone-scroll::-webkit-scrollbar {
   display: none;
 }
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-phone-frame {
+  width: min(390px, calc(100vw - 32px));
+  height: min(844px, calc(100dvh - 32px));
+  background: #fff;
+  border: 10px solid #1e293b;
+  border-radius: 52px;
+  box-shadow: 0 0 0 1px #334155, 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 430px) {
+  .app-shell {
+    padding: 0;
+  }
+
+  .app-phone-frame {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

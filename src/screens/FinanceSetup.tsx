@@ -3,14 +3,18 @@ import {
   ArrowLeft,
   ArrowDownLeft,
   ArrowUpRight,
-  Check,
   FolderPlus,
   Landmark,
   Plus,
   Target,
   WalletCards,
 } from "lucide-react"
-import { formatCurrency } from "../components/UI"
+import {
+  FINANCE_FIELD_CLASS,
+  formatCurrency,
+  parseNumericInput,
+  Toast,
+} from "../components/UI"
 import type { Goal, SpendingCategory, Transaction } from "../data/mockData"
 
 export interface FinanceWorkspace {
@@ -75,19 +79,21 @@ export default function FinanceSetup({
     note: "",
   })
   const [message, setMessage] = useState("")
+  const [messageKind, setMessageKind] = useState<"success" | "error">("success")
 
-  const fieldClass =
-    "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-
-  function notify(text: string) {
+  function notify(text: string, kind: "success" | "error" = "success") {
     setMessage(text)
+    setMessageKind(kind)
     window.setTimeout(() => setMessage(""), 2200)
   }
 
   function saveBalance(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const value = Number(balance.replace(",", "."))
-    if (!Number.isFinite(value)) return
+    const value = parseNumericInput(balance)
+    if (!Number.isFinite(value)) {
+      notify("Informe um saldo válido.", "error")
+      return
+    }
     onChange({ ...workspace, balance: value })
     notify("Saldo atualizado com sucesso")
   }
@@ -96,11 +102,21 @@ export default function FinanceSetup({
     event.preventDefault()
     const name = categoryName.trim()
     if (!name) return
+    if (
+      workspace.categories.some(
+        (category) =>
+          category.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+      )
+    ) {
+      notify("Essa categoria já existe.", "error")
+      return
+    }
     const category: SpendingCategory = {
       name,
       amount: 0,
       percentage: 0,
-      color: categoryColors[workspace.categories.length % categoryColors.length],
+      color:
+        categoryColors[workspace.categories.length % categoryColors.length],
       icon: "•",
     }
     onChange({ ...workspace, categories: [...workspace.categories, category] })
@@ -111,9 +127,18 @@ export default function FinanceSetup({
 
   function addGoal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const target = Number(goalForm.target.replace(",", "."))
-    const current = Number(goalForm.current.replace(",", ".")) || 0
-    if (!goalForm.title.trim() || !target) return
+    const target = parseNumericInput(goalForm.target)
+    const current = goalForm.current ? parseNumericInput(goalForm.current) : 0
+    if (
+      !goalForm.title.trim() ||
+      !Number.isFinite(target) ||
+      target <= 0 ||
+      !Number.isFinite(current) ||
+      current < 0
+    ) {
+      notify("Informe um nome e valores válidos para a meta.", "error")
+      return
+    }
     const goal: Goal = {
       id: crypto.randomUUID(),
       title: goalForm.title.trim(),
@@ -130,11 +155,23 @@ export default function FinanceSetup({
 
   function addTransaction(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const amount = Number(transactionForm.amount.replace(",", "."))
-    if (!transactionForm.title.trim() || !amount || !transactionForm.category) return
+    const amount = parseNumericInput(transactionForm.amount)
+    if (
+      !transactionForm.title.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !transactionForm.category ||
+      !transactionForm.date
+    ) {
+      notify(
+        "Preencha descrição, valor maior que zero, categoria e data.",
+        "error",
+      )
+      return
+    }
 
     const category = workspace.categories.find(
-      (item) => item.name === transactionForm.category
+      (item) => item.name === transactionForm.category,
     )
     const transaction: Transaction = {
       id: crypto.randomUUID(),
@@ -154,8 +191,8 @@ export default function FinanceSetup({
             workspace.categories.map((item) =>
               item.name === transaction.category
                 ? { ...item, amount: item.amount + amount }
-                : item
-            )
+                : item,
+            ),
           )
         : workspace.categories
 
@@ -187,8 +224,12 @@ export default function FinanceSetup({
             <ArrowLeft size={18} />
           </button>
           <div>
-            <p className="text-blue-100 text-xs font-medium">Organize do seu jeito</p>
-            <h2 className="font-display text-xl font-bold">Cadastrar finanças</h2>
+            <p className="text-blue-100 text-xs font-medium">
+              Organize do seu jeito
+            </p>
+            <h2 className="font-display text-xl font-bold">
+              Cadastrar finanças
+            </h2>
           </div>
         </div>
         <div className="flex items-end justify-between rounded-2xl bg-white/10 p-4">
@@ -205,13 +246,20 @@ export default function FinanceSetup({
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5 px-4 py-3 bg-white border-b border-slate-100">
+      <div
+        role="tablist"
+        aria-label="Tipo de cadastro financeiro"
+        className="grid grid-cols-4 gap-1.5 px-4 py-3 bg-white border-b border-slate-100"
+      >
         {sectionOptions.map(({ id, label, icon: Icon }) => {
           const active = section === id
           return (
             <button
               key={id}
+              type="button"
+              role="tab"
               onClick={() => setSection(id)}
+              aria-selected={active}
               className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[9px] font-semibold transition ${
                 active ? "bg-blue-50 text-blue-700" : "text-slate-400"
               }`}
@@ -225,33 +273,43 @@ export default function FinanceSetup({
 
       <div className="phone-scroll flex-1 overflow-y-auto px-4 py-5">
         {message && (
-          <div className="flex items-center gap-2 rounded-2xl bg-green-50 border border-green-100 px-3.5 py-3 mb-4 text-xs font-semibold text-green-700">
-            <Check size={15} />
-            {message}
+          <div className="mb-4">
+            <Toast message={message} kind={messageKind} />
           </div>
         )}
 
         {section === "balance" && (
-          <form onSubmit={saveBalance} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4">
+          <form
+            onSubmit={saveBalance}
+            className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4"
+          >
             <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
               <Landmark size={19} />
             </div>
-            <h3 className="font-display text-base font-bold text-slate-900">Informe seu saldo</h3>
+            <h3 className="font-display text-base font-bold text-slate-900">
+              Informe seu saldo
+            </h3>
             <p className="text-xs text-slate-400 mt-1 mb-5">
               Digite o total disponível hoje nas suas contas.
             </p>
             <label className="block">
-              <span className="block text-xs font-semibold text-slate-600 mb-1.5">Saldo total</span>
+              <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Saldo total
+              </span>
               <input
+                aria-label="Saldo total em reais"
                 required
                 inputMode="decimal"
                 value={balance}
                 onChange={(event) => setBalance(event.target.value)}
-                className={fieldClass}
+                className={FINANCE_FIELD_CLASS}
                 placeholder="0,00"
               />
             </label>
-            <button className="w-full mt-5 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold">
+            <button
+              type="submit"
+              className="w-full mt-5 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold"
+            >
               Salvar saldo
             </button>
           </form>
@@ -259,25 +317,36 @@ export default function FinanceSetup({
 
         {section === "category" && (
           <div className="space-y-4">
-            <form onSubmit={addCategory} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4">
-              <h3 className="font-display text-base font-bold text-slate-900">Nova categoria</h3>
+            <form
+              onSubmit={addCategory}
+              className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4"
+            >
+              <h3 className="font-display text-base font-bold text-slate-900">
+                Nova categoria
+              </h3>
               <p className="text-xs text-slate-400 mt-1 mb-4">
                 Crie grupos para entender melhor seus gastos.
               </p>
               <input
+                aria-label="Nome da categoria"
                 required
                 value={categoryName}
                 onChange={(event) => setCategoryName(event.target.value)}
-                className={fieldClass}
+                className={FINANCE_FIELD_CLASS}
                 placeholder="Ex.: Cursos e livros"
               />
-              <button className="w-full mt-4 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2">
+              <button
+                type="submit"
+                className="w-full mt-4 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold flex items-center justify-center gap-2"
+              >
                 <Plus size={16} />
                 Adicionar categoria
               </button>
             </form>
             <div className="bg-white rounded-3xl border border-slate-100 p-4">
-              <p className="text-xs font-bold text-slate-700 mb-3">Suas categorias</p>
+              <p className="text-xs font-bold text-slate-700 mb-3">
+                Suas categorias
+              </p>
               <div className="flex flex-wrap gap-2">
                 {workspace.categories.map((category) => (
                   <span
@@ -293,55 +362,85 @@ export default function FinanceSetup({
         )}
 
         {section === "goal" && (
-          <form onSubmit={addGoal} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 space-y-4">
+          <form
+            onSubmit={addGoal}
+            className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 space-y-4"
+          >
             <div>
-              <h3 className="font-display text-base font-bold text-slate-900">Nova meta financeira</h3>
-              <p className="text-xs text-slate-400 mt-1">Defina um objetivo claro e acompanhe seu avanço.</p>
+              <h3 className="font-display text-base font-bold text-slate-900">
+                Nova meta financeira
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Defina um objetivo claro e acompanhe seu avanço.
+              </p>
             </div>
             <input
+              aria-label="Nome da meta"
               required
               value={goalForm.title}
-              onChange={(event) => setGoalForm({ ...goalForm, title: event.target.value })}
-              className={fieldClass}
+              onChange={(event) =>
+                setGoalForm({ ...goalForm, title: event.target.value })
+              }
+              className={FINANCE_FIELD_CLASS}
               placeholder="Nome da meta"
             />
             <div className="grid grid-cols-2 gap-3">
               <input
+                aria-label="Valor objetivo da meta em reais"
                 required
                 inputMode="decimal"
                 value={goalForm.target}
-                onChange={(event) => setGoalForm({ ...goalForm, target: event.target.value })}
-                className={fieldClass}
+                onChange={(event) =>
+                  setGoalForm({ ...goalForm, target: event.target.value })
+                }
+                className={FINANCE_FIELD_CLASS}
                 placeholder="Valor objetivo"
               />
               <input
+                aria-label="Valor já guardado para a meta em reais"
                 inputMode="decimal"
                 value={goalForm.current}
-                onChange={(event) => setGoalForm({ ...goalForm, current: event.target.value })}
-                className={fieldClass}
+                onChange={(event) =>
+                  setGoalForm({ ...goalForm, current: event.target.value })
+                }
+                className={FINANCE_FIELD_CLASS}
                 placeholder="Já guardado"
               />
             </div>
             <label className="block">
-              <span className="block text-xs font-semibold text-slate-600 mb-1.5">Prazo</span>
+              <span className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Prazo
+              </span>
               <input
                 type="month"
                 value={goalForm.deadline}
-                onChange={(event) => setGoalForm({ ...goalForm, deadline: event.target.value })}
-                className={fieldClass}
+                onChange={(event) =>
+                  setGoalForm({ ...goalForm, deadline: event.target.value })
+                }
+                className={FINANCE_FIELD_CLASS}
               />
             </label>
-            <button className="w-full py-3.5 rounded-2xl bg-violet-600 text-white text-sm font-bold">
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-2xl bg-violet-600 text-white text-sm font-bold"
+            >
               Criar meta
             </button>
           </form>
         )}
 
         {section === "transaction" && (
-          <form onSubmit={addTransaction} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 space-y-4">
+          <form
+            onSubmit={addTransaction}
+            className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 space-y-4"
+          >
             <div>
-              <h3 className="font-display text-base font-bold text-slate-900">Nova transação</h3>
-              <p className="text-xs text-slate-400 mt-1">Registre uma entrada ou saída do seu saldo.</p>
+              <h3 className="font-display text-base font-bold text-slate-900">
+                Nova transação
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Registre uma entrada ou saída do seu saldo.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {(["expense", "income"] as const).map((type) => {
@@ -351,7 +450,9 @@ export default function FinanceSetup({
                   <button
                     key={type}
                     type="button"
-                    onClick={() => setTransactionForm({ ...transactionForm, type })}
+                    onClick={() =>
+                      setTransactionForm({ ...transactionForm, type })
+                    }
                     className={`flex items-center justify-center gap-2 rounded-2xl border py-3 text-xs font-bold ${
                       selected
                         ? type === "income"
@@ -367,43 +468,73 @@ export default function FinanceSetup({
               })}
             </div>
             <input
+              aria-label="Descrição da transação"
               required
               value={transactionForm.title}
-              onChange={(event) => setTransactionForm({ ...transactionForm, title: event.target.value })}
-              className={fieldClass}
+              onChange={(event) =>
+                setTransactionForm({
+                  ...transactionForm,
+                  title: event.target.value,
+                })
+              }
+              className={FINANCE_FIELD_CLASS}
               placeholder="Descrição"
             />
             <input
+              aria-label="Valor da transação em reais"
               required
               inputMode="decimal"
               value={transactionForm.amount}
-              onChange={(event) => setTransactionForm({ ...transactionForm, amount: event.target.value })}
-              className={fieldClass}
+              onChange={(event) =>
+                setTransactionForm({
+                  ...transactionForm,
+                  amount: event.target.value,
+                })
+              }
+              className={FINANCE_FIELD_CLASS}
               placeholder="Valor"
             />
             <div className="grid grid-cols-2 gap-3">
               <select
+                aria-label="Categoria da transação"
                 required
                 value={transactionForm.category}
-                onChange={(event) => setTransactionForm({ ...transactionForm, category: event.target.value })}
-                className={fieldClass}
+                onChange={(event) =>
+                  setTransactionForm({
+                    ...transactionForm,
+                    category: event.target.value,
+                  })
+                }
+                className={FINANCE_FIELD_CLASS}
               >
                 {workspace.categories.map((category) => (
                   <option key={category.name}>{category.name}</option>
                 ))}
               </select>
               <input
+                aria-label="Data da transação"
                 required
                 type="date"
                 value={transactionForm.date}
-                onChange={(event) => setTransactionForm({ ...transactionForm, date: event.target.value })}
-                className={fieldClass}
+                onChange={(event) =>
+                  setTransactionForm({
+                    ...transactionForm,
+                    date: event.target.value,
+                  })
+                }
+                className={FINANCE_FIELD_CLASS}
               />
             </div>
             <select
+              aria-label="Forma de pagamento"
               value={transactionForm.paymentMethod}
-              onChange={(event) => setTransactionForm({ ...transactionForm, paymentMethod: event.target.value })}
-              className={fieldClass}
+              onChange={(event) =>
+                setTransactionForm({
+                  ...transactionForm,
+                  paymentMethod: event.target.value,
+                })
+              }
+              className={FINANCE_FIELD_CLASS}
             >
               <option>PIX</option>
               <option>Cartão de Crédito</option>
@@ -413,12 +544,21 @@ export default function FinanceSetup({
               <option>Boleto</option>
             </select>
             <textarea
+              aria-label="Observação da transação"
               value={transactionForm.note}
-              onChange={(event) => setTransactionForm({ ...transactionForm, note: event.target.value })}
-              className={`${fieldClass} min-h-20 resize-none`}
+              onChange={(event) =>
+                setTransactionForm({
+                  ...transactionForm,
+                  note: event.target.value,
+                })
+              }
+              className={`${FINANCE_FIELD_CLASS} min-h-20 resize-none`}
               placeholder="Observação opcional"
             />
-            <button className="w-full py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold">
+            <button
+              type="submit"
+              className="w-full py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-bold"
+            >
               Adicionar transação
             </button>
           </form>

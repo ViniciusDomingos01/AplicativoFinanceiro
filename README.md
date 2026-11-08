@@ -48,3 +48,7 @@ corepack pnpm format  # formatação com oxfmt
 ## Escopo atual
 
 Os dados continuam demonstrativos e o estado editável existe somente em memória. A aplicação ainda não tem autenticação, persistência ou integração com backend. A escolha dessas partes depende da definição de produto e deve acontecer antes de substituir os mocks.
+
+O Figma MCP não está conectado nesta sessão. O relatório do Copilot também registra que o arquivo Figma Make não pôde ser aberto por esse MCP; por isso, esta etapa preserva os estilos e componentes exportados, mas não confirma a fidelidade ao canvas original. Os artigos exportados têm título e metadados, sem o texto integral.
+
+Para demonstrar o progresso local, um quiz concluído concede 10 XP por resposta correta na primeira tentativa daquela aula; a aprovação continua exigindo 70% de acertos, conforme a tela de quiz existente. A conclusão da aula e o progresso do curso só avançam ao passar. Esses valores são regras de demonstração desta interface e não representam uma política de produto/backend.

@@ -25,7 +25,7 @@ import {
   Target,
   BookOpen,
 } from "lucide-react"
-import { monthlyData, courses } from "../data/mockData"
+import { monthlyData, courses, financialSummary } from "../data/mockData"
 import { BalanceAreaChart } from "../components/Charts"
 import { Card, ProgressBar, formatCurrency } from "../components/UI"
 import type { UserProfile } from "../data/mockData"
@@ -38,9 +38,15 @@ interface HomeProps {
   navigate: NavigateToScreen
   user: UserProfile
   workspace: FinanceWorkspace
+  courseProgress: Record<string, number>
 }
 
-export default function Home({ navigate, user, workspace }: HomeProps) {
+export default function Home({
+  navigate,
+  user,
+  workspace,
+  courseProgress,
+}: HomeProps) {
   const { balance, categories, goals, transactions } = workspace
   const income = transactions
     .filter((item) => item.type === "income")
@@ -52,7 +58,12 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
   const mainGoal = goals[0]
 
   // Curso com progresso salvo (o usuário já iniciou)
-  const inProgressCourse = courses.find((c) => c.progress !== undefined)
+  const inProgressCourse = courses
+    .map((course) => ({
+      ...course,
+      progress: courseProgress[course.id] ?? course.progress,
+    }))
+    .find((c) => c.progress !== undefined)
 
   return (
     <div className="phone-scroll flex-1 overflow-y-auto bg-slate-50 pb-24">
@@ -82,16 +93,26 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
           </div>
           <div className="flex items-center gap-3">
             {/* Sino de notificação com badge vermelho indicando novas notificações */}
-            <button className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center relative">
+            <button
+              type="button"
+              onClick={() => navigate("profile")}
+              aria-label="Abrir perfil e configurações"
+              className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center relative"
+            >
               <Bell size={16} className="text-white" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
             </button>
             {/* Avatar com as iniciais do usuário */}
-            <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => navigate("profile")}
+              aria-label="Abrir perfil"
+              className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center"
+            >
               <span className="text-green-900 font-bold text-xs">
                 {user.avatar}
               </span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -139,7 +160,7 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
             },
             {
               label: "Investido",
-              value: formatCurrency(12300),
+              value: formatCurrency(financialSummary.totalInvested),
               icon: <Target size={14} />,
               color: "#7c3aed",
               bg: "bg-violet-50",
@@ -210,61 +231,76 @@ export default function Home({ navigate, user, workspace }: HomeProps) {
         </Card>
 
         {/* ── Card de meta financeira principal ── */}
-        <Card className="p-4" onClick={() => navigate("goals")}>
-          <div className="flex items-center justify-between mb-3">
-            <h3
-              className="text-sm font-bold text-slate-900"
-              style={{ fontFamily: "Outfit, sans-serif" }}
-            >
-              Meta principal
-            </h3>
-            {/* Seta indicando que o card é clicável */}
-            <ChevronRight size={14} className="text-slate-400" />
-          </div>
+        {mainGoal ? (
+          <Card className="p-4" onClick={() => navigate("goals")}>
+            <div className="flex items-center justify-between mb-3">
+              <h3
+                className="text-sm font-bold text-slate-900"
+                style={{ fontFamily: "Outfit, sans-serif" }}
+              >
+                Meta principal
+              </h3>
+              {/* Seta indicando que o card é clicável */}
+              <ChevronRight size={14} className="text-slate-400" />
+            </div>
 
-          {/* Linha com ícone, nome da meta e percentual */}
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
-              style={{ backgroundColor: mainGoal.color + "18" }}
-            >
-              {mainGoal.icon}
+            {/* Linha com ícone, nome da meta e percentual */}
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+                style={{ backgroundColor: mainGoal.color + "18" }}
+              >
+                {mainGoal.icon}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-800">
+                  {mainGoal.title}
+                </p>
+                <p className="text-xs text-slate-400">
+                  Prazo:{" "}
+                  <span className="text-slate-600 font-medium">
+                    {mainGoal.deadline}
+                  </span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-900 font-mono-data">
+                  {Math.round((mainGoal.current / mainGoal.target) * 100)}%
+                </p>
+                <p className="text-[10px] text-slate-400">concluído</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-800">
-                {mainGoal.title}
-              </p>
-              <p className="text-xs text-slate-400">
-                Prazo:{" "}
-                <span className="text-slate-600 font-medium">
-                  {mainGoal.deadline}
-                </span>
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-900 font-mono-data">
-                {Math.round((mainGoal.current / mainGoal.target) * 100)}%
-              </p>
-              <p className="text-[10px] text-slate-400">concluído</p>
-            </div>
-          </div>
 
-          {/* Barra de progresso + valores mínimo/máximo */}
-          <ProgressBar
-            value={mainGoal.current}
-            max={mainGoal.target}
-            color={mainGoal.color}
-            height={8}
-          />
-          <div className="flex justify-between mt-1.5">
-            <span className="text-[10px] text-slate-400 font-mono-data">
-              {formatCurrency(mainGoal.current)}
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono-data">
-              {formatCurrency(mainGoal.target)}
-            </span>
-          </div>
-        </Card>
+            {/* Barra de progresso + valores mínimo/máximo */}
+            <ProgressBar
+              value={mainGoal.current}
+              max={mainGoal.target}
+              color={mainGoal.color}
+              height={8}
+            />
+            <div className="flex justify-between mt-1.5">
+              <span className="text-[10px] text-slate-400 font-mono-data">
+                {formatCurrency(mainGoal.current)}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono-data">
+                {formatCurrency(mainGoal.target)}
+              </span>
+            </div>
+          </Card>
+        ) : (
+          <Card className="p-4">
+            <p className="text-sm font-semibold text-slate-800">
+              Nenhuma meta cadastrada
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("financeSetup", "goal")}
+              className="mt-2 text-xs font-semibold text-green-700"
+            >
+              Criar uma meta
+            </button>
+          </Card>
+        )}
 
         {/* ── Card "Continue aprendendo" ── */}
         {inProgressCourse && (

@@ -34,9 +34,23 @@ import type { Transaction } from "../data/mockData"
 import type { FinanceWorkspace } from "./FinanceSetup"
 
 /** Opções de filtro de período exibidas como chips selecionáveis */
-const periods = ["7d", "30d", "3m", "6m", "1a"]
-
 import type { NavigateToScreen } from "../app/routes"
+
+const periods = ["7d", "30d", "3m", "6m", "1a"]
+const periodDays: Record<string, number> = {
+  "7d": 7,
+  "30d": 30,
+  "3m": 90,
+  "6m": 180,
+  "1a": 365,
+}
+const periodMonths: Record<string, number> = {
+  "7d": 1,
+  "30d": 1,
+  "3m": 3,
+  "6m": 6,
+  "1a": 12,
+}
 
 interface FinancesProps {
   /** Função de navegação global recebida do App.tsx */
@@ -45,20 +59,64 @@ interface FinancesProps {
 }
 
 export default function Finances({ navigate, workspace }: FinancesProps) {
-  const { transactions, categories, balance } = workspace
-  // Período selecionado no filtro (controla aparência dos chips; dados reais seriam filtrados)
+  const { transactions, balance } = workspace
   const [activePeriod, setActivePeriod] = useState("30d")
+  const [showAllTransactions, setShowAllTransactions] = useState(false)
+
+  const latestTransactionDate = transactions.reduce(
+    (latest, transaction) =>
+      transaction.date > latest ? transaction.date : latest,
+    transactions[0]?.date ?? new Date().toISOString().slice(0, 10),
+  )
+  const periodEnd = new Date(`${latestTransactionDate}T12:00:00`)
+  const periodStart = new Date(periodEnd)
+  periodStart.setDate(periodStart.getDate() - periodDays[activePeriod] + 1)
+  const filteredTransactions = transactions.filter((transaction) => {
+    const date = new Date(`${transaction.date}T12:00:00`)
+    return date >= periodStart && date <= periodEnd
+  })
 
   // Separa transações por tipo para exibição na listagem
-  const income = transactions.filter((t) => t.type === "income")
-  const expenses = transactions.filter((t) => t.type === "expense")
+  const income = filteredTransactions.filter((t) => t.type === "income")
+  const expenses = filteredTransactions.filter((t) => t.type === "expense")
+  const filteredCategories = expenses.reduce<Array<{
+    name: string
+    amount: number
+    percentage: number
+    color: string
+    icon: string
+  }>>((result, transaction) => {
+    const category = result.find((item) => item.name === transaction.category)
+    if (category) {
+      category.amount += transaction.amount
+    } else {
+      result.push({
+        name: transaction.category,
+        amount: transaction.amount,
+        percentage: 0,
+        color: transaction.categoryColor,
+        icon: transaction.icon,
+      })
+    }
+    return result
+  }, [])
+  const filteredExpenseTotal = filteredCategories.reduce(
+    (sum, item) => sum + item.amount,
+    0,
+  )
+  filteredCategories.forEach((item) => {
+    item.percentage =
+      filteredExpenseTotal > 0
+        ? Math.round((item.amount / filteredExpenseTotal) * 100)
+        : 0
+  })
 
   /**
    * Agrupa transações por data para renderizar cabeçalhos de dia.
    * Resultado: { "2025-07-01": [tx1, tx2], "2025-07-03": [tx3] }
    */
   const groupedTransactions =
-    transactions.reduce<Record<string, Transaction[]>>((acc, t) => {
+    filteredTransactions.reduce<Record<string, Transaction[]>>((acc, t) => {
       if (!acc[t.date]) acc[t.date] = []
       acc[t.date].push(t)
       return acc
@@ -68,6 +126,11 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
   const sortedDates = Object.keys(groupedTransactions).sort((a, b) =>
     b.localeCompare(a),
   )
+  const chartData = monthlyData.slice(-periodMonths[activePeriod])
+  const dateLabel = periodEnd.toLocaleDateString("pt-BR", {
+    month: "short",
+    year: "numeric",
+  })
 
   return (
     /*
@@ -93,7 +156,9 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
             >
               Finanças
             </h2>
-            <span className="text-blue-200 text-xs font-medium">Jul 2025</span>
+            <span className="text-blue-200 text-xs font-medium">
+              Dados de {dateLabel}
+            </span>
           </div>
 
           {/* Saldo total em destaque */}
@@ -148,7 +213,9 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
             {periods.map((p) => (
               <button
                 key={p}
+                type="button"
                 onClick={() => setActivePeriod(p)}
+                aria-pressed={activePeriod === p}
                 className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
                   activePeriod === p
                     ? "bg-blue-600 text-white shadow-md"
@@ -170,14 +237,14 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
                 Receitas vs Despesas
               </h3>
             </div>
-            <MonthlyBarChart data={monthlyData} />
+            <MonthlyBarChart data={chartData} />
           </Card>
 
           {/* Categorias de gasto com barra de progresso proporcional */}
           <Card className="p-4">
             <SectionHeader title="Categorias de gasto" />
             <div className="space-y-3">
-              {categories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <div key={cat.name}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
@@ -204,69 +271,91 @@ export default function Finances({ navigate, workspace }: FinancesProps) {
                   />
                 </div>
               ))}
+              {filteredCategories.length === 0 && (
+                <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">
+                  Sem despesas registradas neste período.
+                </p>
+              )}
             </div>
           </Card>
 
           {/* Lista de transações agrupadas por data */}
           <div>
-            <SectionHeader title="Transações recentes" action="Ver todas" />
+            <SectionHeader
+              title="Transações recentes"
+              action={showAllTransactions ? "Mostrar menos" : "Ver todas"}
+              onAction={() => setShowAllTransactions((value) => !value)}
+            />
             <div className="space-y-2.5">
-              {sortedDates.slice(0, 4).map((date) => (
-                <div key={date}>
-                  {/* Cabeçalho do grupo de data */}
-                  <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide px-1">
-                    {new Date(date + "T12:00:00").toLocaleDateString("pt-BR", {
-                      weekday: "long",
-                      day: "2-digit",
-                      month: "short",
-                    })}
-                  </p>
+              {sortedDates
+                .slice(0, showAllTransactions ? undefined : 4)
+                .map((date) => (
+                  <div key={date}>
+                    {/* Cabeçalho do grupo de data */}
+                    <p className="text-[10px] text-slate-400 font-medium mb-1.5 uppercase tracking-wide px-1">
+                      {new Date(date + "T12:00:00").toLocaleDateString(
+                        "pt-BR",
+                        {
+                          weekday: "long",
+                          day: "2-digit",
+                          month: "short",
+                        },
+                      )}
+                    </p>
 
-                  {/* Itens do grupo */}
-                  <div className="space-y-1.5">
-                    {groupedTransactions[date].map((t) => (
-                      <Card
-                        key={t.id}
-                        className="px-4 py-3 flex items-center gap-3"
-                        onClick={() => navigate("transaction", t)} // abre tela de detalhe
-                      >
-                        {/* Ícone da categoria com cor de fundo suave */}
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                          style={{ backgroundColor: t.categoryColor + "18" }}
+                    {/* Itens do grupo */}
+                    <div className="space-y-1.5">
+                      {groupedTransactions[date].map((t) => (
+                        <Card
+                          key={t.id}
+                          className="px-4 py-3 flex items-center gap-3"
+                          onClick={() => navigate("transaction", t)} // abre tela de detalhe
                         >
-                          {t.icon}
-                        </div>
-
-                        {/* Nome e categoria */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-800 truncate">
-                            {t.title}
-                          </p>
-                          <p className="text-[10px] text-slate-400">
-                            {t.category}
-                          </p>
-                        </div>
-
-                        {/* Valor com cor diferente para receita (verde) e despesa (cinza) */}
-                        <div className="flex items-center gap-1">
-                          <span
-                            className={`text-sm font-bold font-mono-data ${
-                              t.type === "income"
-                                ? "text-green-600"
-                                : "text-slate-700"
-                            }`}
+                          {/* Ícone da categoria com cor de fundo suave */}
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                            style={{ backgroundColor: t.categoryColor + "18" }}
                           >
-                            {t.type === "income" ? "+" : "-"}
-                            {formatCurrency(t.amount)}
-                          </span>
-                          <ArrowUpRight size={12} className="text-slate-300" />
-                        </div>
-                      </Card>
-                    ))}
+                            {t.icon}
+                          </div>
+
+                          {/* Nome e categoria */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 truncate">
+                              {t.title}
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              {t.category}
+                            </p>
+                          </div>
+
+                          {/* Valor com cor diferente para receita (verde) e despesa (cinza) */}
+                          <div className="flex items-center gap-1">
+                            <span
+                              className={`text-sm font-bold font-mono-data ${
+                                t.type === "income"
+                                  ? "text-green-600"
+                                  : "text-slate-700"
+                              }`}
+                            >
+                              {t.type === "income" ? "+" : "-"}
+                              {formatCurrency(t.amount)}
+                            </span>
+                            <ArrowUpRight
+                              size={12}
+                              className="text-slate-300"
+                            />
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              {sortedDates.length === 0 && (
+                <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-500">
+                  Nenhuma transação encontrada neste período.
+                </p>
+              )}
             </div>
           </div>
         </div>

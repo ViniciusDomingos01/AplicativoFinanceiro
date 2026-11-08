@@ -1,5 +1,7 @@
 {
-  "description": "Manage personal finances and enhance financial literacy with interactive courses and tools, designed for users seeking to improve their financial health.",
+  "title": "FinEduca",
+  "description": "Aprenda educação financeira e organize seu planejamento em um só lugar.",
+  "language": "pt-BR",
   "robots": {
     "index": false
   },

@@ -40,11 +40,16 @@ import type { NavigateToScreen } from "../app/routes"
 interface CourseDetailProps {
   /** Curso selecionado na tela Aprender (recebido via App.tsx → navigate) */
   course: Course
+  completedLessonIds: string[]
   /** Função de navegação global */
   navigate: NavigateToScreen
 }
 
-export default function CourseDetail({ course, navigate }: CourseDetailProps) {
+export default function CourseDetail({
+  course,
+  completedLessonIds,
+  navigate,
+}: CourseDetailProps) {
   // Controla qual módulo está expandido no accordion (apenas um por vez)
   const [expandedModule, setExpandedModule] = useState("m1")
 
@@ -67,10 +72,15 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
 
   // Contagem total de aulas e aulas concluídas (para barra de progresso do cabeçalho)
   const totalLessons = courseModules.reduce((s, m) => s + m.lessons.length, 0)
+  const isCompleted = (lesson: Lesson) =>
+    lesson.completed || completedLessonIds.includes(lesson.id)
   const completedLessons = courseModules.reduce(
-    (s, m) => s + m.lessons.filter((l) => l.completed).length,
+    (s, m) => s + m.lessons.filter(isCompleted).length,
     0,
   )
+  const nextLesson = courseModules
+    .flatMap((module) => module.lessons)
+    .find((lesson) => !isCompleted(lesson))
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -176,7 +186,7 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
         <div className="px-4 py-4 space-y-2.5">
           {courseModules.map((mod) => {
             const isExpanded = expandedModule === mod.id
-            const modCompleted = mod.lessons.filter((l) => l.completed).length
+            const modCompleted = mod.lessons.filter(isCompleted).length
 
             return (
               <div
@@ -221,13 +231,13 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
                       >
                         {/* Ícone de tipo/status da aula */}
                         <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                          {lessonIcon(lesson.type, lesson.completed)}
+                          {lessonIcon(lesson.type, isCompleted(lesson))}
                         </div>
                         <div className="flex-1 min-w-0">
                           {/* Título com tachado se a aula foi concluída */}
                           <p
                             className={`text-xs font-medium ${
-                              lesson.completed
+                              isCompleted(lesson)
                                 ? "text-slate-400 line-through"
                                 : "text-slate-800"
                             }`}
@@ -239,7 +249,7 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
                           </p>
                         </div>
                         {/* Seta apenas para aulas não concluídas */}
-                        {!lesson.completed && (
+                        {!isCompleted(lesson) && (
                           <ChevronRight
                             size={12}
                             className="text-slate-300 flex-shrink-0"
@@ -262,7 +272,8 @@ export default function CourseDetail({ course, navigate }: CourseDetailProps) {
        */}
       <div className="px-4 pb-6 pt-3 bg-white border-t border-slate-100">
         <button
-          onClick={() => navigate("lesson", courseModules[1].lessons[1])}
+          onClick={() => nextLesson && navigate("lesson", nextLesson)}
+          disabled={!nextLesson}
           className="w-full py-4 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
           style={{
             background: `linear-gradient(135deg, ${course.color}, ${course.color}cc)`,

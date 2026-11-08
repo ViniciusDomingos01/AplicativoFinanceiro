@@ -43,7 +43,7 @@ export default function BottomNav({ active, onChange }: BottomNavProps) {
   return (
     <nav
       aria-label="Navegação principal"
-      className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex z-50 pb-2"
+      className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex z-50 pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
     >
       {tabs.map(({ id, label, Icon }) => {
         const isActive = active === id
