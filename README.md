@@ -74,4 +74,12 @@ O modelo registra usuários/perfis/sessões, patrimônio inicial com data de in�
 
 A API expõe `/api/v1/auth` (cadastro, sessão e logout), `/api/v1/profile`, `/api/v1/finance` (patrimônio-base, categorias, origens, transações e resumo), `/api/v1/goals`, `/api/v1/budgets` e `/api/v1/learning` (progresso e tentativas de quiz). Todos os recursos do usuário exigem sessão, e transações, categorias e origens são limitadas ao proprietário também por relações compostas no PostgreSQL.
 
+## Execução local e funcionamento offline
+
+O Vite, a API e a porta PostgreSQL do Compose aceitam conexões somente em `127.0.0.1`. A API usa `DATABASE_URL` para acessar o PostgreSQL local; não há provedor externo de autenticação, banco ou sincronização. Google Analytics, scripts externos e telemetria estão desativados. Outfit, Inter e DM Mono são servidas do próprio build, com os textos SIL Open Font License preservados em `src/assets/fonts/`.
+
+Depois de instalar previamente as dependências do Node/Prisma e obter a imagem PostgreSQL do Compose, a aplicação pode ser iniciada sem internet. A aula da regra 50/30/20 mantém um link complementar para o YouTube, que só tenta abrir um serviço externo quando o usuário clica. O projeto ainda não inclui backup/restauração.
+
+As configurações de conexão e origem web continuam em variáveis de ambiente para facilitar uma eventual adaptação de implantação. O bind local é uma proteção deliberada nesta etapa; nenhuma hospedagem em nuvem está configurada.
+
 Comandos de qualidade da API: `corepack pnpm check`, `corepack pnpm api:test`, `corepack pnpm api:build` e `corepack pnpm build`. O Compose cria um banco apenas para desenvolvimento, com credenciais não destinadas a produção. A migração está versionada, mas precisa ser aplicada com `db:migrate` em um PostgreSQL ativo antes de testar cadastro, login e persistência.

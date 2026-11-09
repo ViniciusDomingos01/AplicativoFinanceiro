@@ -5,10 +5,10 @@ const environmentSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-  API_HOST: z.string().default("127.0.0.1"),
+  API_HOST: z.literal("127.0.0.1").default("127.0.0.1"),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   DATABASE_URL: z.string().min(1, "DATABASE_URL é obrigatória"),
-  WEB_ORIGIN: z.string().url().default("http://localhost:8443"),
+  WEB_ORIGIN: z.string().url().default("http://127.0.0.1:8443"),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(720).default(168),
 })
 
