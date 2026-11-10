@@ -1,4 +1,4 @@
-export type Screen = "onboarding" | "auth" | "home" | "finances" | "transaction" | "goals" | "learn" | "courseDetail" | "lesson" | "quiz" | "profile" | "personalData" | "financeSetup"
+export type Screen = "onboarding" | "auth" | "home" | "finances" | "financeOrganization" | "transaction" | "goals" | "learn" | "courseDetail" | "lesson" | "quiz" | "profile" | "personalData" | "financeSetup"
 
 export type NavigateToScreen = (screen: Screen, data?: unknown) => void
 
@@ -7,6 +7,7 @@ export const ROUTES: Record<Screen, string> = {
   auth: "/auth",
   home: "/home",
   finances: "/finances",
+  financeOrganization: "/finances/organization",
   transaction: "/finances/transactions",
   goals: "/goals",
   learn: "/learn",
@@ -26,6 +27,10 @@ const ROUTE_MATCHERS: Array<{
   { screen: "auth", matches: (path) => path === "/auth" },
   { screen: "home", matches: (path) => path === "/home" },
   { screen: "finances", matches: (path) => path === "/finances" },
+  {
+    screen: "financeOrganization",
+    matches: (path) => path === "/finances/organization",
+  },
   {
     screen: "transaction",
     matches: (path) => /^\/finances\/transactions\/[^/]+$/.test(path),

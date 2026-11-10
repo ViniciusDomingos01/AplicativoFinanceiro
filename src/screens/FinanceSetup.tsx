@@ -16,6 +16,7 @@ import {
   Toast,
 } from "../components/UI"
 import type { Goal, SpendingCategory, Transaction } from "../data/mockData"
+import type { ApiFinancialSource } from "../api/client"
 
 export interface FinanceWorkspace {
   balance: number
@@ -30,9 +31,11 @@ export type SetupSection = "balance" | "transaction" | "category" | "goal"
 
 interface FinanceSetupProps {
   workspace: FinanceWorkspace
+  sources: ApiFinancialSource[]
   initialSection: SetupSection
   onChange: (workspace: FinanceWorkspace) => Promise<void>
   onBack: () => void
+  onManageSources: () => void
 }
 
 const sectionOptions: Array<{
@@ -58,9 +61,11 @@ function recalculatePercentages(categories: SpendingCategory[]) {
 
 export default function FinanceSetup({
   workspace,
+  sources,
   initialSection,
   onChange,
   onBack,
+  onManageSources,
 }: FinanceSetupProps) {
   const [section, setSection] = useState<SetupSection>(initialSection)
   const [balance, setBalance] = useState(String(workspace.initialBalance ?? 0))
@@ -84,6 +89,7 @@ export default function FinanceSetup({
       workspace.categories.find((item) => item.type === "expense")?.name ?? "",
     date: new Date().toISOString().slice(0, 10),
     paymentMethod: "PIX",
+    sourceId: "",
     note: "",
   })
   const [message, setMessage] = useState("")
@@ -220,6 +226,10 @@ export default function FinanceSetup({
       categoryColor: category?.color ?? "#2563eb",
       date: transactionForm.date,
       paymentMethod: transactionForm.paymentMethod,
+      sourceId: transactionForm.sourceId || null,
+      sourceName:
+        sources.find((source) => source.id === transactionForm.sourceId)
+          ?.name ?? null,
       note: transactionForm.note.trim() || undefined,
       icon: transactionForm.type === "income" ? "↑" : "↓",
     }
@@ -628,6 +638,36 @@ export default function FinanceSetup({
               <option>Transferência</option>
               <option>Boleto</option>
             </select>
+            <label className="block text-xs font-semibold text-slate-600">
+              Origem financeira (opcional)
+              <select
+                aria-label="Origem financeira"
+                value={transactionForm.sourceId}
+                onChange={(event) =>
+                  setTransactionForm({
+                    ...transactionForm,
+                    sourceId: event.target.value,
+                  })
+                }
+                className={FINANCE_FIELD_CLASS}
+              >
+                <option value="">Sem origem vinculada</option>
+                {sources.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {source.name}
+                  </option>
+                ))}
+              </select>
+              {sources.length === 0 && (
+                <button
+                  type="button"
+                  onClick={onManageSources}
+                  className="mt-2 text-blue-700 underline"
+                >
+                  Cadastrar uma origem
+                </button>
+              )}
+            </label>
             <textarea
               aria-label="Observação da transação"
               value={transactionForm.note}

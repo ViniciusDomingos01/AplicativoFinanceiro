@@ -21,7 +21,13 @@
  */
 
 import { useEffect, useState } from "react"
-import { Plus, TrendingUp, TrendingDown, ArrowUpRight } from "lucide-react"
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  ArrowUpRight,
+  Settings2,
+} from "lucide-react"
 import { MonthlyBarChart } from "../components/Charts"
 import {
   Card,
@@ -254,6 +260,14 @@ export default function Finances({
               </div>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => navigate("financeOrganization")}
+            className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Settings2 size={15} aria-hidden="true" />
+            Gerenciar origens e orçamentos
+          </button>
           {loadingSummary && (
             <p role="status" className="mt-2 text-[10px] text-white/70">
               Atualizando período…

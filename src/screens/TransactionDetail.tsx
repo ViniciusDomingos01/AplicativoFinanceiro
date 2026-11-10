@@ -26,6 +26,7 @@ import {
   Calendar,
   Tag,
   CreditCard,
+  Landmark,
   FileText,
   ArrowUpCircle,
   ArrowDownCircle,
@@ -39,6 +40,7 @@ import {
   Toast,
 } from "../components/UI"
 import type { SpendingCategory } from "../data/mockData"
+import type { ApiFinancialSource } from "../api/client"
 
 import type { NavigateToScreen } from "../app/routes"
 
@@ -48,6 +50,7 @@ interface TransactionDetailProps {
   /** Função de navegação global — usada para voltar à tela de finanças */
   navigate: NavigateToScreen
   categories: SpendingCategory[]
+  sources: ApiFinancialSource[]
   onSave: (transaction: Transaction) => Promise<void>
   onDelete: () => Promise<void>
 }
@@ -56,6 +59,7 @@ export default function TransactionDetail({
   transaction: t,
   navigate,
   categories,
+  sources,
   onSave,
   onDelete,
 }: TransactionDetailProps) {
@@ -73,6 +77,7 @@ export default function TransactionDetail({
     category: t.category,
     date: t.date,
     paymentMethod: t.paymentMethod,
+    sourceId: t.sourceId ?? "",
     note: t.note ?? "",
   })
 
@@ -84,6 +89,7 @@ export default function TransactionDetail({
       category: t.category,
       date: t.date,
       paymentMethod: t.paymentMethod,
+      sourceId: t.sourceId ?? "",
       note: t.note ?? "",
     })
   }, [t])
@@ -209,6 +215,11 @@ export default function TransactionDetail({
                 value: t.paymentMethod,
               },
               {
+                icon: <Landmark size={15} className="text-slate-400" />,
+                label: "Origem financeira",
+                value: t.sourceName ?? "Sem origem vinculada",
+              },
+              {
                 icon: isIncome ? (
                   <ArrowUpCircle size={15} className="text-green-500" />
                 ) : (
@@ -221,7 +232,7 @@ export default function TransactionDetail({
               <div
                 key={i}
                 className={`flex items-center gap-3 px-4 py-3.5 ${
-                  i < 3 ? "border-b border-slate-50" : ""
+                  i < 4 ? "border-b border-slate-50" : ""
                 }`}
               >
                 {/* Ícone do campo com fundo neutro */}
@@ -400,6 +411,23 @@ export default function TransactionDetail({
                 }
                 className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal"
               />
+            </label>
+            <label className="block text-xs font-semibold text-slate-600">
+              Origem financeira (opcional)
+              <select
+                value={form.sourceId}
+                onChange={(event) =>
+                  setForm({ ...form, sourceId: event.target.value })
+                }
+                className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal"
+              >
+                <option value="">Sem origem vinculada</option>
+                {sources.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {source.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="block text-xs font-semibold text-slate-600">
               Observação

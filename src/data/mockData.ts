@@ -88,6 +88,9 @@ export interface Transaction {
   categoryColor: string // cor hex para ícones e badges
   date: string // formato ISO: "YYYY-MM-DD"
   paymentMethod: string
+  /** Origem organizacional opcional, independente da forma de pagamento. */
+  sourceId?: string | null
+  sourceName?: string | null
   note?: string // observação opcional
   icon: string // emoji representando a categoria
 }

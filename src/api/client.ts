@@ -96,6 +96,23 @@ export interface ApiCategory {
   icon: string | null
 }
 
+export interface ApiFinancialSource {
+  id: string
+  name: string
+}
+
+export interface ApiBudget {
+  id: string
+  categoryId: string
+  year: number
+  month: number
+  limitCents: string
+  spentCents: string
+  remainingCents: string
+  percentage: number
+  category: ApiCategory
+}
+
 export interface ApiGoal {
   id: string
   title: string

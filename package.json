@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite --host 127.0.0.1",
     "api:dev": "tsx watch api/src/server.ts",
     "api:build": "tsc -p api/tsconfig.json --noEmit false --outDir api/dist",
     "api:check": "tsc -p api/tsconfig.json",

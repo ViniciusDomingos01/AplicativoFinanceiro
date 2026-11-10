@@ -39,6 +39,8 @@ import {
   fromCents,
   toCents,
   type ApiCategory,
+  type ApiFinancialSource,
+  type ApiBudget,
   type ApiProfile,
   type ApiSummary,
   type ApiTransaction,
@@ -57,6 +59,7 @@ const Quiz = lazy(() => import("./screens/Quiz"))
 const Profile = lazy(() => import("./screens/Profile"))
 const PersonalData = lazy(() => import("./screens/PersonalData"))
 const FinanceSetup = lazy(() => import("./screens/FinanceSetup"))
+const FinanceOrganization = lazy(() => import("./screens/FinanceOrganization"))
 
 const TAB_SCREENS: Record<NavTab, Screen> = {
   home: "home",
@@ -68,6 +71,7 @@ const TAB_SCREENS: Record<NavTab, Screen> = {
 const SCREEN_TO_TAB: Partial<Record<Screen, NavTab>> = {
   home: "home",
   finances: "finances",
+  financeOrganization: "finances",
   transaction: "finances",
   financeSetup: "finances",
   goals: "home",
@@ -82,6 +86,7 @@ const SCREEN_TO_TAB: Partial<Record<Screen, NavTab>> = {
 const SCREENS_WITH_NAV: Screen[] = [
   "home",
   "finances",
+  "financeOrganization",
   "goals",
   "learn",
   "profile",
@@ -141,6 +146,9 @@ export default function App() {
     transactions,
   })
   const [financeSummary, setFinanceSummary] = useState<ApiSummary | null>(null)
+  const [financialSources, setFinancialSources] =
+    useState<ApiFinancialSource[]>([])
+  const [budgets, setBudgets] = useState<ApiBudget[]>([])
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
@@ -159,25 +167,34 @@ export default function App() {
 
   const loadAuthenticatedData = useCallback(async () => {
     const userData = await api.get<ApiProfile>("/profile")
-    const [categories, transactionResponse, goalResponse, learning] =
-      await Promise.all([
-        api.get<ApiCategory[]>("/finance/categories"),
-        userData.baseline
-          ? api.get<ApiTransaction[]>("/finance/transactions?limit=500")
-          : Promise.resolve([] as ApiTransaction[]),
-        api.get<Array<{
-          id: string
-          title: string
-          targetCents: string
-          currentReservedCents: string
-          deadline: string | null
-        }>>("/goals"),
-        api.get<{
-          lessons: Array<{ courseId: string; lessonId: string }>
-          attempts: Array<{ lessonId: string; xpAwarded: number }>
-          xp: number
-        }>("/learning/progress"),
-      ])
+    const month = new Date().toISOString().slice(0, 7)
+    const [
+      categories,
+      sources,
+      budgetsResponse,
+      transactionResponse,
+      goalResponse,
+      learning,
+    ] = await Promise.all([
+      api.get<ApiCategory[]>("/finance/categories"),
+      api.get<ApiFinancialSource[]>("/finance/sources"),
+      api.get<ApiBudget[]>(`/budgets?month=${month}`),
+      userData.baseline
+        ? api.get<ApiTransaction[]>("/finance/transactions?limit=500")
+        : Promise.resolve([] as ApiTransaction[]),
+      api.get<Array<{
+        id: string
+        title: string
+        targetCents: string
+        currentReservedCents: string
+        deadline: string | null
+      }>>("/goals"),
+      api.get<{
+        lessons: Array<{ courseId: string; lessonId: string }>
+        attempts: Array<{ lessonId: string; xpAwarded: number }>
+        xp: number
+      }>("/learning/progress"),
+    ])
     const today = new Date().toISOString().slice(0, 10)
     const monthStart = `${today.slice(0, 7)}-01`
     const summary = userData.baseline
@@ -189,6 +206,8 @@ export default function App() {
       summary?.spendingCategories.map((item) => [item.id, item]) ?? [],
     )
     setFinanceSummary(summary)
+    setFinancialSources(sources)
+    setBudgets(budgetsResponse)
 
     setProfile({
       ...initialUser,
@@ -243,7 +262,9 @@ export default function App() {
         categoryId: transaction.categoryId,
         categoryColor: transaction.category.color ?? "#64748b",
         date: transaction.date.slice(0, 10),
-        paymentMethod: transaction.source?.name ?? "Não informado",
+        paymentMethod: transaction.paymentMethod ?? "Não informado",
+        sourceId: transaction.sourceId,
+        sourceName: transaction.source?.name ?? null,
         note: transaction.note ?? undefined,
         icon: transaction.category.icon ?? "•",
       })),
@@ -383,11 +404,17 @@ export default function App() {
       description: next.title,
       date: next.date,
       paymentMethod: next.paymentMethod,
+      sourceId: next.sourceId ?? null,
       categoryId: category.id,
       note: next.note ?? null,
     })
     await loadAuthenticatedData()
-    setSelectedTransaction(next)
+    setSelectedTransaction({
+      ...next,
+      sourceName:
+        financialSources.find((source) => source.id === next.sourceId)?.name ??
+        null,
+    })
   }
 
   async function deleteTransaction(transaction: Transaction) {
@@ -505,6 +532,7 @@ export default function App() {
           description: transaction.title,
           date: transaction.date,
           paymentMethod: transaction.paymentMethod,
+          sourceId: transaction.sourceId ?? null,
           categoryId: category.id,
           note: transaction.note ?? null,
         }
@@ -553,6 +581,8 @@ export default function App() {
         transactions: [],
       })
       setFinanceSummary(null)
+      setFinancialSources([])
+      setBudgets([])
       setSelectedTransaction(null)
       setSelectedCourse(null)
       setSelectedLesson(null)
@@ -619,11 +649,22 @@ export default function App() {
             onPeriodChange={changeFinancePeriod}
           />
         )
+      case "financeOrganization":
+        return (
+          <FinanceOrganization
+            categories={financeWorkspace.categories}
+            sources={financialSources}
+            budgets={budgets}
+            onRefresh={loadAuthenticatedData}
+            onBack={() => navigate("finances")}
+          />
+        )
       case "transaction":
         return currentTransaction ? (
           <TransactionDetail
             transaction={currentTransaction}
             categories={financeWorkspace.categories}
+            sources={financialSources}
             onSave={(updated) => updateTransaction(currentTransaction, updated)}
             onDelete={() => deleteTransaction(currentTransaction)}
             navigate={navigate}
@@ -719,9 +760,11 @@ export default function App() {
         return (
           <FinanceSetup
             workspace={financeWorkspace}
+            sources={financialSources}
             initialSection={financeSetupSection}
             onChange={updateFinanceWorkspace}
             onBack={() => navigate("finances")}
+            onManageSources={() => navigate("financeOrganization")}
           />
         )
     }
@@ -741,7 +784,13 @@ export default function App() {
     if (authStatus !== "authenticated")
       return <Navigate to={ROUTES.auth} replace />
     if (
-      ["home", "finances", "goals", "transaction"].includes(target) &&
+      [
+        "home",
+        "finances",
+        "financeOrganization",
+        "goals",
+        "transaction",
+      ].includes(target) &&
       !financeWorkspace.trackingStartDate
     ) {
       return <Navigate to={`${ROUTES.financeSetup}/balance`} replace />
@@ -794,6 +843,10 @@ export default function App() {
           />
           <Route path="/home" element={secured("home")} />
           <Route path="/finances" element={secured("finances")} />
+          <Route
+            path={ROUTES.financeOrganization}
+            element={secured("financeOrganization")}
+          />
           <Route
             path="/finances/transactions/:id"
             element={secured("transaction")}
