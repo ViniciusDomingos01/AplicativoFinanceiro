@@ -185,7 +185,7 @@ model UserPreferences {
 model LessonProgress {
   id          String    @id @default(uuid()) @db.Uuid
   userId      String    @db.Uuid
-  courseId    String    @db.VarChar(80)
+  courseId    String    @default("1") @db.VarChar(80)
   lessonId    String    @db.VarChar(80)
   completedAt DateTime? @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @db.Timestamptz(3)
@@ -200,7 +200,7 @@ model LessonProgress {
 model QuizAttempt {
   id            String   @id @default(uuid()) @db.Uuid
   userId        String   @db.Uuid
-  courseId      String   @db.VarChar(80)
+  courseId      String   @default("1") @db.VarChar(80)
   lessonId      String   @db.VarChar(80)
   score         Int
   total         Int
