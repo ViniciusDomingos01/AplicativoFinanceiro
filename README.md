@@ -61,11 +61,17 @@ Para desenvolvimento local com Docker instalado:
 
 ```sh
 corepack pnpm install
-cp .env.example .env
-docker compose up -d postgres
 corepack pnpm db:generate
 corepack pnpm db:migrate
 corepack pnpm api:dev
+```
+
+No Windows, mantenha as credenciais fora de pastas sincronizadas. Crie `%LOCALAPPDATA%\FinEduca\.env` usando `.env.example` como modelo, substitua o marcador por uma senha aleatória alfanumérica e repita a senha na `DATABASE_URL`. A API e o Prisma leem esse arquivo automaticamente. Para o Compose, sempre informe o arquivo explicitamente:
+
+```powershell
+$envPath = Join-Path $env:LOCALAPPDATA 'FinEduca\.env'
+docker compose --env-file $envPath config --quiet
+docker compose --env-file $envPath up -d postgres
 ```
 
 Em outro terminal, execute `corepack pnpm dev`. O Vite encaminha `/api` para a API em `localhost:3001`. O endpoint `/api/health/live` verifica o processo; `/api/health/ready` verifica também a conexão com o PostgreSQL.

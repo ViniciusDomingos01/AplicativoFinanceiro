@@ -1,5 +1,13 @@
-import "dotenv/config"
+import { config as loadDotenv } from "dotenv"
+import { join } from "node:path"
 import { z } from "zod"
+
+const environmentFile =
+  process.env.FINEDUCA_ENV_FILE ??
+  (process.env.LOCALAPPDATA
+    ? join(process.env.LOCALAPPDATA, "FinEduca", ".env")
+    : ".env")
+loadDotenv({ path: environmentFile })
 
 const environmentSchema = z.object({
   NODE_ENV: z
