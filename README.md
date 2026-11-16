@@ -82,7 +82,7 @@ A API expõe `/api/v1/auth` (cadastro, sessão e logout), `/api/v1/profile`, `/a
 
 ## Execução local e funcionamento offline
 
-Novos cadastros recebem categorias iniciais separadas por tipo: Salário, Renda extra, Vendas e Outras receitas; Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Contas e serviços e Outras despesas. A criação ocorre junto com o cadastro e não modifica contas existentes. O tema claro/escuro é uma preferência local do navegador. A interface não oferece controles de notificações enquanto o recurso não estiver implementado.
+Novos cadastros recebem categorias iniciais separadas por tipo: Salário, Renda extra, Vendas e Outras receitas; Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Contas e serviços e Outras despesas. A criação ocorre junto com o cadastro e não modifica contas existentes. O painel inicial apresenta em “Gastos por categoria” somente categorias de despesa com valores registrados, ordenadas do maior gasto para o menor; sem despesas no período, mostra um estado vazio. O tema claro/escuro é uma preferência local do navegador. A interface não oferece controles de notificações enquanto o recurso não estiver implementado.
 
 O Vite, a API e a porta PostgreSQL do Compose aceitam conexões somente em `127.0.0.1`. A API usa `DATABASE_URL` para acessar o PostgreSQL local; não há provedor externo de autenticação, banco ou sincronização. Google Analytics, scripts externos e telemetria estão desativados. Outfit, Inter e DM Mono são servidas do próprio build, com os textos SIL Open Font License preservados em `src/assets/fonts/`.
 
