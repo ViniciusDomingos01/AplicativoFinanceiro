@@ -82,9 +82,22 @@ A API expõe `/api/v1/auth` (cadastro, sessão e logout), `/api/v1/profile`, `/a
 
 ## Execução local e funcionamento offline
 
+Novos cadastros recebem categorias iniciais separadas por tipo: Salário, Renda extra, Vendas e Outras receitas; Moradia, Alimentação, Transporte, Saúde, Educação, Lazer, Contas e serviços e Outras despesas. A criação ocorre junto com o cadastro e não modifica contas existentes. O tema claro/escuro é uma preferência local do navegador. A interface não oferece controles de notificações enquanto o recurso não estiver implementado.
+
 O Vite, a API e a porta PostgreSQL do Compose aceitam conexões somente em `127.0.0.1`. A API usa `DATABASE_URL` para acessar o PostgreSQL local; não há provedor externo de autenticação, banco ou sincronização. Google Analytics, scripts externos e telemetria estão desativados. Outfit, Inter e DM Mono são servidas do próprio build, com os textos SIL Open Font License preservados em `src/assets/fonts/`.
 
 Depois de instalar previamente as dependências do Node/Prisma e obter a imagem PostgreSQL do Compose, a aplicação pode ser iniciada sem internet. A aula da regra 50/30/20 mantém um link complementar para o YouTube, que só tenta abrir um serviço externo quando o usuário clica. O projeto ainda não inclui backup/restauração.
+
+### Usuários e dados de demonstração
+
+Para carregar exemplos em um PostgreSQL local recém-configurado, aplique as migrações e execute `corepack pnpm db:seed`. O seed é local, não roda automaticamente, bloqueia `NODE_ENV=production` e preserva integralmente qualquer conta que já exista com o mesmo e-mail. As contas são fictícias e os registros financeiros são apenas exemplos manuais, sem integração ou movimentação bancária.
+
+| Uso | E-mail | Senha |
+| --- | --- | --- |
+| Exemplo completo com histórico financeiro e educacional | `demo@fineduca.test` | `demo1234demo` |
+| Conta sem dados financeiros, para testar o primeiro acesso | `novo@fineduca.test` | `teste1234novo` |
+
+O seed gera transações distribuídas pelos seis meses anteriores e pelo mês atual, conforme a data de execução. Em outro dispositivo, instale as dependências, configure um PostgreSQL local, aplique as migrações e execute o mesmo comando `corepack pnpm db:seed`; os exemplos serão recriados nesse banco. Não distribua essas credenciais em uma implantação de produção.
 
 As configurações de conexão e origem web continuam em variáveis de ambiente para facilitar uma eventual adaptação de implantação. O bind local é uma proteção deliberada nesta etapa; nenhuma hospedagem em nuvem está configurada.
 

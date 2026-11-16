@@ -4,6 +4,7 @@ import type { Screen } from "../app/routes"
 
 interface AppShellProps {
   screen: Screen
+  theme: "light" | "dark"
   activeTab: NavTab
   showNav: boolean
   onTabChange: (tab: NavTab) => void
@@ -20,6 +21,7 @@ const LIGHT_STATUS_SCREENS: Screen[] = [
 
 export default function AppShell({
   screen,
+  theme,
   activeTab,
   showNav,
   onTabChange,
@@ -55,13 +57,21 @@ export default function AppShell({
         >
           <span
             className="text-[11px] font-semibold font-mono-data"
-            style={{ color: lightStatus ? "rgba(255,255,255,0.8)" : "#0f172a" }}
+            style={{
+              color: lightStatus
+                ? "rgba(255,255,255,0.8)"
+                : theme === "dark"
+                  ? "#cbd5e1"
+                  : "#0f172a",
+            }}
           >
             9:41
           </span>
           <div
             className="flex items-center gap-1 text-[9px]"
-            style={{ color: lightStatus ? "rgba(255,255,255,0.6)" : "#94a3b8" }}
+            style={{
+              color: lightStatus ? "rgba(255,255,255,0.6)" : "#94a3b8",
+            }}
           >
             <span>●●●</span>
             <span>▂▄▆</span>

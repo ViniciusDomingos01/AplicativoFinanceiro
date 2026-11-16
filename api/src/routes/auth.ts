@@ -1,6 +1,7 @@
 import { Algorithm, hash, verify } from "@node-rs/argon2"
 import type { FastifyInstance, FastifyReply } from "fastify"
 import { z } from "zod"
+import { DEFAULT_CATEGORIES } from "../default-categories.js"
 import {
   clearSessionCookie,
   createSessionToken,
@@ -78,6 +79,12 @@ export async function registerAuthRoutes(app: FastifyInstance) {
                 },
               },
             },
+          })
+          await tx.category.createMany({
+            data: DEFAULT_CATEGORIES.map((category) => ({
+              ...category,
+              userId: user.id,
+            })),
           })
           await tx.session.create({
             data: {

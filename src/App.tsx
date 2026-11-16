@@ -104,6 +104,15 @@ interface NavigationState {
 }
 
 type AuthStatus = "loading" | "anonymous" | "authenticated" | "unavailable"
+type Theme = "light" | "dark"
+
+function initialTheme(): Theme {
+  try {
+    return localStorage.getItem("fineduca-theme") === "dark" ? "dark" : "light"
+  } catch {
+    return "light"
+  }
+}
 
 function initials(name: string) {
   return name
@@ -135,7 +144,7 @@ export default function App() {
   const screen = screenForPath(location.pathname) ?? "onboarding"
   const [profile, setProfile] = useState<UserProfile>(initialUser)
   const [authStatus, setAuthStatus] = useState<AuthStatus>("loading")
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [theme, setTheme] = useState<Theme>(initialTheme)
   const [personalDataReturn, setPersonalDataReturn] = useState<Screen>("home")
   const [financeWorkspace, setFinanceWorkspace] = useState<FinanceWorkspace>({
     balance: financialSummary.totalBalance,
@@ -220,7 +229,6 @@ export default function App() {
       xp: learning.xp,
       memberSince: uiDate(userData.profile?.createdAt),
     })
-    setNotificationsEnabled(userData.preferences?.notificationsEnabled ?? true)
     setFinanceWorkspace({
       balance: fromCents(
         summary?.estimatedBalanceCents ??
@@ -326,6 +334,15 @@ export default function App() {
       mounted = false
     }
   }, [loadAuthenticatedData])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    try {
+      localStorage.setItem("fineduca-theme", theme)
+    } catch {
+      // O tema continua ativo nesta sessão mesmo se o armazenamento local estiver indisponível.
+    }
+  }, [theme])
 
   const routeId = routeIdFromPath(location.pathname)
   const navigationState = location.state as NavigationState | null
@@ -590,7 +607,6 @@ export default function App() {
       setCourseProgress({})
       setCompletedLessonIds([])
       setRewardedLessonIds([])
-      setNotificationsEnabled(true)
       routerNavigate(ROUTES.onboarding)
     }
   }
@@ -726,11 +742,8 @@ export default function App() {
             goals={financeWorkspace.goals}
             onLogout={handleLogout}
             courseProgress={courseProgress}
-            notificationsEnabled={notificationsEnabled}
-            onNotificationsChange={async (enabled) => {
-              await api.patch("/profile", { notificationsEnabled: enabled })
-              setNotificationsEnabled(enabled)
-            }}
+            theme={theme}
+            onThemeChange={setTheme}
           />
         )
       case "personalData":
@@ -801,6 +814,7 @@ export default function App() {
   return (
     <AppShell
       screen={screen}
+      theme={theme}
       activeTab={activeTab}
       showNav={SCREENS_WITH_NAV.includes(screen)}
       onTabChange={handleTabChange}

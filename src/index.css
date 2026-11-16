@@ -108,6 +108,115 @@ body {
   box-shadow: 0 0 0 1px #334155, 0 32px 80px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] .app-phone-frame {
+  background-color: #0f172a;
+}
+
+html[data-theme='dark'] .bg-white {
+  background-color: #1e293b;
+}
+
+html[data-theme='dark'] .bg-slate-50 {
+  background-color: #0f172a;
+}
+
+html[data-theme='dark'] .bg-slate-100 {
+  background-color: #334155;
+}
+
+html[data-theme='dark'] .bg-slate-200 {
+  background-color: #475569;
+}
+
+html[data-theme='dark'] .bg-green-50 {
+  background-color: #052e16;
+}
+
+html[data-theme='dark'] .bg-blue-50 {
+  background-color: #172554;
+}
+
+html[data-theme='dark'] .bg-violet-50 {
+  background-color: #2e1065;
+}
+
+html[data-theme='dark'] .bg-red-50 {
+  background-color: #450a0a;
+}
+
+html[data-theme='dark'] .text-slate-900 {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .text-slate-800 {
+  color: #e2e8f0;
+}
+
+html[data-theme='dark'] .text-slate-700,
+html[data-theme='dark'] .text-slate-600 {
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .text-slate-500,
+html[data-theme='dark'] .text-slate-400 {
+  color: #94a3b8;
+}
+
+html[data-theme='dark'] .text-slate-300 {
+  color: #64748b;
+}
+
+html[data-theme='dark'] .text-green-700,
+html[data-theme='dark'] .text-green-600 {
+  color: #86efac;
+}
+
+html[data-theme='dark'] .text-blue-700,
+html[data-theme='dark'] .text-blue-600 {
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .text-violet-800,
+html[data-theme='dark'] .text-violet-700,
+html[data-theme='dark'] .text-violet-600 {
+  color: #c4b5fd;
+}
+
+html[data-theme='dark'] .text-red-700,
+html[data-theme='dark'] .text-red-600 {
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .border-slate-50,
+html[data-theme='dark'] .border-slate-100 {
+  border-color: #334155;
+}
+
+html[data-theme='dark'] .border-slate-200 {
+  border-color: #475569;
+}
+
+html[data-theme='dark'] .border-red-100 {
+  border-color: #7f1d1d;
+}
+
+html[data-theme='dark'] input:not([type='checkbox']),
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder {
+  color: #94a3b8;
+}
+
 @media (max-width: 430px) {
   .app-shell {
     padding: 0;

@@ -20,8 +20,8 @@ import {
   Settings,
   ChevronRight,
   Award,
-  Bell,
   Moon,
+  Sun,
   HelpCircle,
   LogOut,
   Star,
@@ -41,8 +41,8 @@ interface ProfileProps {
   goals: Goal[]
   onLogout: () => void
   courseProgress: Record<string, number>
-  notificationsEnabled: boolean
-  onNotificationsChange: (enabled: boolean) => Promise<void>
+  theme: "light" | "dark"
+  onThemeChange: (theme: "light" | "dark") => void
 }
 
 export default function Profile({
@@ -51,11 +51,10 @@ export default function Profile({
   goals,
   onLogout,
   courseProgress,
-  notificationsEnabled,
-  onNotificationsChange,
+  theme,
+  onThemeChange,
 }: ProfileProps) {
-  const [dialog, setDialog] =
-    useState<"privacy" | "appearance" | "support" | null>(null)
+  const [dialog, setDialog] = useState<"privacy" | "support" | null>(null)
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [message, setMessage] = useState("")
   // Dados de aprendizado (em produção, viriam de uma API)
@@ -319,61 +318,46 @@ export default function Profile({
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             {[
               {
-                id: "notifications",
-                icon: <Bell size={16} className="text-blue-500" />,
-                label: "Notificações",
-                bg: "bg-blue-50",
-                hasAlert: true, // indica configuração pendente
-              },
-              {
                 id: "privacy",
                 icon: <Shield size={16} className="text-green-500" />,
                 label: "Privacidade",
                 bg: "bg-green-50",
-                hasAlert: false,
               },
               {
                 id: "appearance",
-                icon: <Moon size={16} className="text-violet-500" />,
-                label: "Aparência",
+                icon:
+                  theme === "dark" ? (
+                    <Sun size={16} className="text-violet-500" />
+                  ) : (
+                    <Moon size={16} className="text-violet-500" />
+                  ),
+                label: "Modo escuro",
                 bg: "bg-violet-50",
-                hasAlert: false,
               },
               {
                 id: "support",
                 icon: <HelpCircle size={16} className="text-slate-400" />,
                 label: "Ajuda e suporte",
                 bg: "bg-slate-50",
-                hasAlert: false,
               },
             ].map((item, i) => (
               <button
                 key={item.label}
                 type="button"
                 onClick={() => {
-                  if (item.id === "notifications") {
-                    void onNotificationsChange(!notificationsEnabled)
-                      .then(() =>
-                        setMessage(
-                          !notificationsEnabled
-                            ? "Notificações ativadas."
-                            : "Notificações desativadas.",
-                        ),
-                      )
-                      .catch((error: unknown) =>
-                        setMessage(
-                          error instanceof Error
-                            ? error.message
-                            : "Não foi possível salvar a preferência.",
-                        ),
-                      )
+                  if (item.id === "appearance") {
+                    const nextTheme = theme === "dark" ? "light" : "dark"
+                    onThemeChange(nextTheme)
+                    setMessage(
+                      nextTheme === "dark"
+                        ? "Tema escuro ativado."
+                        : "Tema claro ativado.",
+                    )
                   } else {
-                    setDialog(item.id as "privacy" | "appearance" | "support")
+                    setDialog(item.id as "privacy" | "support")
                   }
                 }}
-                aria-pressed={
-                  item.id === "notifications" ? notificationsEnabled : undefined
-                }
+                aria-pressed={item.id === "appearance" ? theme === "dark" : undefined}
                 className={`w-full flex items-center gap-3 px-4 py-3.5 ${
                   i > 0 ? "border-t border-slate-50" : ""
                 }`}
@@ -387,17 +371,9 @@ export default function Profile({
                 <span className="flex-1 text-sm text-slate-700 font-medium text-left">
                   {item.label}
                 </span>
-                {/* Indicador de alerta (ponto vermelho) se houver algo pendente */}
-                {item.hasAlert && notificationsEnabled && (
-                  <span className="w-2 h-2 bg-red-400 rounded-full mr-1" />
-                )}
-                {item.id === "notifications" ? (
-                  <span
-                    className={`text-[10px] font-semibold ${
-                      notificationsEnabled ? "text-green-600" : "text-slate-400"
-                    }`}
-                  >
-                    {notificationsEnabled ? "Ativas" : "Desativadas"}
+                {item.id === "appearance" ? (
+                  <span className="text-[10px] font-semibold text-violet-600">
+                    {theme === "dark" ? "Ativo" : "Desativado"}
                   </span>
                 ) : (
                   <ChevronRight size={14} className="text-slate-300" />
@@ -424,21 +400,13 @@ export default function Profile({
       </div>
       {dialog && (
         <Modal
-          title={
-            dialog === "privacy"
-              ? "Privacidade"
-              : dialog === "appearance"
-                ? "Aparência"
-                : "Ajuda e suporte"
-          }
+          title={dialog === "privacy" ? "Privacidade" : "Ajuda e suporte"}
           onClose={() => setDialog(null)}
         >
           <p className="text-sm leading-relaxed text-slate-600">
             {dialog === "privacy"
               ? "Seus registros são privados da sua conta. O aplicativo não se conecta a bancos nem sincroniza saldos."
-              : dialog === "appearance"
-                ? "O protótipo está usando o tema claro. A preferência de aparência ainda não foi definida para esta versão."
-                : "O canal de suporte ainda não foi configurado. Consulte a equipe responsável pelo aplicativo para obter ajuda."}
+              : "O canal de suporte ainda não foi configurado. Consulte a equipe responsável pelo aplicativo para obter ajuda."}
           </p>
         </Modal>
       )}

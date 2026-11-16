@@ -17,7 +17,6 @@
  */
 
 import {
-  Bell,
   Plus,
   ChevronRight,
   TrendingUp,
@@ -73,6 +72,10 @@ export default function Home({
       income: fromCents(item.incomeCents),
       expenses: fromCents(item.expensesCents),
     })) ?? []
+  const topSpendingCategories = categories
+    .filter((category) => category.type === "expense" && category.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3)
   // Primeira meta para exibir no card de progresso do dashboard
   const mainGoal = goals[0]
 
@@ -110,29 +113,16 @@ export default function Home({
               {user.name.split(" ")[0]}
             </h2>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Sino de notificação com badge vermelho indicando novas notificações */}
-            <button
-              type="button"
-              onClick={() => navigate("profile")}
-              aria-label="Abrir perfil e configurações"
-              className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center relative"
-            >
-              <Bell size={16} className="text-white" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-400 rounded-full" />
-            </button>
-            {/* Avatar com as iniciais do usuário */}
-            <button
-              type="button"
-              onClick={() => navigate("profile")}
-              aria-label="Abrir perfil"
-              className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center"
-            >
-              <span className="text-green-900 font-bold text-xs">
-                {user.avatar}
-              </span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate("profile")}
+            aria-label="Abrir perfil"
+            className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center"
+          >
+            <span className="text-green-900 font-bold text-xs">
+              {user.avatar}
+            </span>
+          </button>
         </div>
 
         {/* Saldo total em destaque com fonte monospace para números */}
@@ -241,30 +231,36 @@ export default function Home({
           </div>
 
           {/* Mostra apenas as 3 principais categorias para não sobrecarregar o dashboard */}
-          <div className="space-y-2.5">
-            {categories.slice(0, 3).map((cat) => (
-              <div key={cat.name}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{cat.icon}</span>
-                    <span className="text-xs text-slate-700 font-medium">
-                      {cat.name}
+          {topSpendingCategories.length > 0 ? (
+            <div className="space-y-2.5">
+              {topSpendingCategories.map((cat) => (
+                <div key={cat.id ?? cat.name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{cat.icon}</span>
+                      <span className="text-xs text-slate-700 font-medium">
+                        {cat.name}
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-700 font-mono-data">
+                      {formatCurrency(cat.amount)}
                     </span>
                   </div>
-                  <span className="text-xs font-semibold text-slate-700 font-mono-data">
-                    {formatCurrency(cat.amount)}
-                  </span>
+                  {/* Barra de progresso representa a parcela do total gasto. */}
+                  <ProgressBar
+                    value={cat.percentage}
+                    max={100}
+                    color={cat.color}
+                    height={5}
+                  />
                 </div>
-                {/* Barra de progresso representando % do gasto total */}
-                <ProgressBar
-                  value={cat.percentage}
-                  max={100}
-                  color={cat.color}
-                  height={5}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="py-2 text-xs text-slate-500">
+              Nenhuma despesa registrada neste período.
+            </p>
+          )}
         </Card>
 
         {/* ── Card de meta financeira principal ── */}
